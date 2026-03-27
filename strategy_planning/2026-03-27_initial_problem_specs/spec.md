@@ -2,6 +2,8 @@
 
 ## Problem statement
 
+(TODO: Mark)
+
 ## Project components (high-level)
 
 We plan on this project to have the following high-level phases
@@ -23,6 +25,10 @@ A key component of any ML project is initial exploration. Some questions that yo
 2. How old is the data? Do we think that a model trained on the dataset would be representative for the task? Why or why not?
 3. Do we have an even split of class labels? We ideally want something where close to 50% of the training data has moral outrage, and the rest do not. Think about what would happen if this weren't true, and what we could do to resolve it if it weren't true.
 
+...
+
+(TODO: Mark)
+
 ### Part 2: Train/fine-tune a few model variations
 
 #### 2.1. Do initial experiments
@@ -31,9 +37,15 @@ Dr. Brady's original paper tried Naive Bayes and RNNs and LSTMs, if I recall cor
 
 ##### Phase 1: Non-transformer models
 
+(TODO: Mark)
+
 ##### Phase 2: BERT model
 
+(TODO: Mark)
+
 ##### Phase 3: Open-sourced LLM
+
+(TODO: Mark)
 
 #### 2.2. Train models like a proper ML engineer
 
@@ -70,3 +82,9 @@ See [Building an evaluation harness](./eval_harness_spec.md) for more.
 Deploy model in [Modal](https://modal.com/). Host model weights in [HuggingFace](https://huggingface.co/).
 
 See [Deploying the REST API](./rest_api_spec.md) for more.
+
+## Implementation order
+
+We actually want to start with implementing "Part 3.1: Build a simple evaluation harness to make this efficient" first, as it'll give us a baseline for what already exists. Before we train any models, let's see how existing models already do.
+
+Once we've done that, we can implement each step in order.
