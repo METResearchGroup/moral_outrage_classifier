@@ -1,7 +1,11 @@
 import os
 import json
+from uuid import uuid4
 from googleapiclient import discovery
 from dotenv import load_dotenv
+
+from lib.timestamp_utils import get_current_timestamp
+from schemas.responses import MoralOutrage
 
 load_dotenv()
 
@@ -20,7 +24,7 @@ class PerspectiveAPIModel:
             static_discovery=False,
             )
 
-    def batch_classify(self, texts: list[str]) -> list[dict]:
+    def batch_classify(self, texts: list[str]) -> list[MoralOutrage]:
         analyze_requests = [
             {
                 'comment': { 'text': text },
@@ -34,12 +38,26 @@ class PerspectiveAPIModel:
             for analyze_request in analyze_requests
         ]
 
-        print(json.dumps(response, indent=2))
-        return response 
+        timestamp = get_current_timestamp()
+        try:
+            res = [
+                MoralOutrage(
+                    text_id=str(uuid4()),
+                    text=text,
+                    moral_outrage_score=resp['attributeScores']['MORAL_OUTRAGE_EXPERIMENTAL']['summaryScore']['value'],
+                    label_timestamp=timestamp
+                )
+                for (text, resp) in (zip(texts, response, strict=True))
+            ]
+        except KeyError as e:
+            print(f"Error processing response: {e}")
+            raise
+    
+        return res 
 
 
 pam = PerspectiveAPIModel()
-pam.batch_classify(["friendly greetings from python", "you are a terrible person"])
+print(pam.batch_classify(["friendly greetings from python", "you are a terrible person"]))
 
 
 # analyze_request = {
