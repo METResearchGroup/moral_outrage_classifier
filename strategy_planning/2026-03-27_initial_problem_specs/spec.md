@@ -9,7 +9,11 @@ We plan on this project to have the following high-level phases
 1. Do some basic exploration of the dataset and clean up anything as needed.
 2. Train/fine-tune a few model variations.
 3. Validate the model (test it against other similar APIs like the Perspective API as well as [Dr. Brady's original paper](https://osf.io/preprints/psyarxiv/gf7t5_v1) and [follow-up paper](https://osf.io/preprints/osf/k5dzr_v1)).
-4. Deploy it as a REST API on AWS.
+4. Deploy it as a REST API.
+
+Steps 1-3 are enough for completion of the research component of the project. Step 4 is necessary for shipping a completed product like an ML engineer would.
+
+This 4-step plan is basically what shipping a full end-to-end ML project in industry looks like. You can add layers of complexity here and there, but being an ML engineer, in large part, consists of work related to some combination of these steps.
 
 ### Part 1: Basic data exploration
 
@@ -17,13 +21,23 @@ A key component of any ML project is initial exploration. Some questions that yo
 
 1. Is the data all English?
 2. How old is the data? Do we think that a model trained on the dataset would be representative for the task? Why or why not?
-3. ...
+3. Do we have an even split of class labels? We ideally want something where close to 50% of the training data has moral outrage, and the rest do not. Think about what would happen if this weren't true, and what we could do to resolve it if it weren't true.
 
 ### Part 2: Train/fine-tune a few model variations
 
 #### 2.1. Do initial experiments
 
+Dr. Brady's original paper tried Naive Bayes and RNNs and LSTMs, if I recall correctly, and I think it would be good to test against those same baselines and then add a BERT model and then some open-source LLM (e.g., Qwen, Llama).
+
+##### Phase 1: Non-transformer models
+
+##### Phase 2: BERT model
+
+##### Phase 3: Open-sourced LLM
+
 #### 2.2. Train models like a proper ML engineer
+
+Once you've figured out a basic family of models that work, let's train it systematically to perfect the results.
 
 Tools to learn:
 
@@ -31,119 +45,28 @@ Tools to learn:
 - Optuna: for hyperparameter tuning
 - (Optional) MLFlow: for saving model training parameters + artifacts (may be overkill, we will revisit).
 
+Here, we'll use hyperparameter tuning and review the training curves across model runs. Our goal is to maximize the model performance as much as possible.
+
 ### Part 3: Validate the model
+
+Once we have a working model, we'll want to validate the results against other similar ML models. We'll want to compare it against the following baselines:
+
+1. A basic LLM prompt (e.g., asking ChatGPT "does this post have outrage?")
+2. The Perspective API (Google's in-house API endpoint for this task).
+
+We'll also want to test against a few other datasets (which will be provided).
+
+1. Reddit text.
+2. Twitter text.
+
+#### Part 3.1: Build a simple evaluation harness to make this efficient
+
+To make testing easier (and to be able to do it repeatedly), we'll create what's called an [evaluation harness](https://www.eleuther.ai/projects/large-language-model-evaluation)
+
+See [Building an evaluation harness](./eval_harness_spec.md) for more.
 
 ### Part 4: Deploy as a REST API
 
 Deploy model in [Modal](https://modal.com/). Host model weights in [HuggingFace](https://huggingface.co/).
 
-The following sketch assumes that we'll end up with a fine-tuned 7B model (which is what I'm expecting). Conceptually, the code would look something like:
-
-```python
-import os
-import modal
-
-APP_NAME = "moral-outrage-llm"
-MODEL_ID = "your-org/your-7b-finetune"  # or any HF hub id
-
-# CUDA stack + libs — trim/extend for your actual runtime (vLLM vs transformers, etc.)
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "fastapi",
-        "uvicorn",
-        "huggingface_hub",
-        "transformers",
-        "torch",
-        "accelerate",
-        "safetensors",
-    )
-    # If you need a specific CUDA wheel line, follow Modal’s GPU image examples instead of debian_slim.
-)
-
-app = modal.App(APP_NAME)
-
-
-@app.cls(
-    image=image,
-    gpu="A10G",  # pick something that fits your 7B + dtype + context
-    secrets=[modal.Secret.from_name("moral-outrage-llm-secrets")],
-    timeout=60 * 10,
-    scaledown_window=60 * 5,  # idle behavior — tune for cost vs cold start
-)
-class Server:
-    @modal.enter()
-    def load(self):
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-
-        # HF_TOKEN env is injected if you put hf_token=... in Modal secrets
-        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, use_fast=True)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            MODEL_ID,
-            torch_dtype=torch.float16,
-            device_map="auto",
-        )
-        self.model.eval()
-
-    @modal.asgi_app()
-    def web(self):
-        from fastapi import FastAPI, Header, HTTPException
-        from pydantic import BaseModel, Field
-
-        web = FastAPI()
-
-        class InferRequest(BaseModel):
-            prompt: str
-            max_new_tokens: int = Field(default=128, le=512)
-
-        def _auth(authorization: str | None) -> None:
-            # Secret should set API_BEARER_TOKEN in the Modal dashboard / CLI
-            expected = os.environ.get("API_BEARER_TOKEN")
-            if not expected:
-                raise HTTPException(500, "Server misconfigured")
-            if authorization is None or not authorization.startswith("Bearer "):
-                raise HTTPException(401, "Missing bearer token")
-            token = authorization.removeprefix("Bearer ").strip()
-            if token != expected:
-                raise HTTPException(403, "Invalid token")
-
-        @web.get("/health")
-        def health():
-            return {"ok": True, "model": MODEL_ID}
-
-        @web.post("/v1/complete")
-        def complete(
-            body: InferRequest,
-            authorization: str | None = Header(default=None),
-        ):
-            _auth(authorization)
-
-            import torch
-
-            inputs = self.tokenizer(body.prompt, return_tensors="pt").to(self.model.device)
-            with torch.inference_mode():
-                out = self.model.generate(
-                    **inputs,
-                    max_new_tokens=body.max_new_tokens,
-                    do_sample=True,
-                    top_p=0.9,
-                    temperature=0.7,
-                )
-            text = self.tokenizer.decode(out[0], skip_special_tokens=True)
-
-            return {"text": text}
-
-        return web
-```
-
-cURL request shape would look something like:
-
-```bash
-curl -sS -X POST 'https://YOUR_MODAL_URL/v1/complete' \
-  -H 'Authorization: Bearer YOUR_LONG_TOKEN' \
-  -H 'Content-Type: application/json' \
-  -d '{"prompt":"Classify the moral outrage in: ...","max_new_tokens":128}'
-```
-
-We choose to do it this way as this is the lightweight, easy-to-ship, way to deploy an ML application as a REST API.
+See [Deploying the REST API](./rest_api_spec.md) for more.
