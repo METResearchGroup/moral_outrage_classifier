@@ -3,7 +3,6 @@ from typing import Callable, TypeVar, ParamSpec
 from functools import wraps
 from rich.console import Console
 from rich.table import Table
-from uuid import uuid4
 
 
 T = TypeVar("T")
