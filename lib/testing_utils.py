@@ -1,6 +1,8 @@
 import time
-from typing import Callable, TypeVar, ParamSpec
+from collections.abc import Callable
 from functools import wraps
+from typing import TypeVar, ParamSpec
+
 try:
     from rich.console import Console
     from rich.table import Table
