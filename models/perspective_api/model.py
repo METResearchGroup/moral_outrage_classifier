@@ -1,5 +1,4 @@
 import os
-import json
 from uuid import uuid4
 from googleapiclient import discovery
 from dotenv import load_dotenv
@@ -10,7 +9,7 @@ from schemas.responses import MoralOutrage
 load_dotenv()
 
 class PerspectiveAPIModel:
-    def __init__(self, api_key: str = None) -> None:
+    def __init__(self, api_key: str | None = None) -> None:
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
 
         if not self.api_key:
