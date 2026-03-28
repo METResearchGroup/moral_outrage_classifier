@@ -51,6 +51,9 @@ class PerspectiveAPIModel:
         except KeyError as e:
             print(f"Error processing response: {e}")
             raise
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            raise
     
         return res 
 
