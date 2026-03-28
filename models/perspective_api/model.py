@@ -55,15 +55,3 @@ class PerspectiveAPIModel:
     
         return res 
 
-
-pam = PerspectiveAPIModel()
-print(pam.batch_classify(["friendly greetings from python", "you are a terrible person"]))
-
-
-# analyze_request = {
-#   'comment': { 'text': 'friendly greetings from python' },
-#   'requestedAttributes': {'TOXICITY': {}}
-# }
-
-# response = client.comments().analyze(body=analyze_request).execute()
-# print(json.dumps(response, indent=2))
