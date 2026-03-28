@@ -5,9 +5,15 @@ description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
     "dotenv>=0.9.9",
+    "google-api-python-client>=2.193.0",
     "numpy>=2.4.3",
     "pandas>=3.0.1",
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.2",
     "scikit-learn>=1.8.0",
+]
+
+[project.optional-dependencies]
+model-testing = [
+    "rich>=14.3.3",
 ]
