@@ -45,36 +45,43 @@ def print_table(title: str, col_headers: list[str], rows: list[list[str]]) -> No
         table.add_row(*row)
     console.print(table)
 
-def store_elapsed_times(inference_func: Callable, counts: list[int], prompt: str) -> list[float]:
+def time_inference_execution(inference_func: Callable, inputs: list[str]) -> float:
+    start = time.perf_counter()
+    inference_func(inputs)
+    return time.perf_counter() - start
+
+def _collect_execution_times_by_count(inference_func: Callable, counts: list[int], prompt: str) -> list[float]:
     elapsed_times = []
     for count in counts:
-        inputs = [prompt] * count
-        start = time.perf_counter()
-        inference_func(inputs)
-        elapsed = time.perf_counter() - start
+        elapsed = time_inference_execution(inference_func, [prompt] * count)
         elapsed_times.append(elapsed)
 
     return elapsed_times
 
-def evaluate_model_performance(inference_func: Callable , prompt: str) -> None:
-    counts = [1, 10, 100, 1000, 10000]
+def _prepare_table_rows(counts: list[int], execution_times: list[float], time_per_input: list[float]) -> list[list[str]]:
+    rows = []
+    for count, elapsed, time_per in zip(counts, execution_times, time_per_input, strict=True):
+        rows.append([str(count), f"{elapsed:.4f}", f"{time_per:.4f}"])
+    return rows
 
-    # store the elapsed time for each count of inputs
-    elapsed_times = store_elapsed_times(inference_func, counts, prompt)
-
+def _display_results_in_table(counts: list[int], execution_times: list[float]) -> None:
     # calculate the average time per input for each count. this will be used as a column in the table
     time_per_input = [(count / elapsed) if elapsed > 0 else float('inf') 
-                      for (count, elapsed) in zip(counts, elapsed_times, strict=True)]
+                      for (count, elapsed) in zip(counts, execution_times, strict=True)]
     
-    # prepare the rows for the table
-    # each row: [input count, elapsed time, average inference time]
-    rows = []
-    for count, elapsed, time_per in zip(counts, elapsed_times, time_per_input, strict=True):
-        rows.append([str(count), f"{elapsed:.4f}", f"{time_per:.4f}"])
+    rows = _prepare_table_rows(counts, execution_times, time_per_input)
 
     print_table(
         "Model Performance",
         ["Input Count", "Elapsed Time (s)", "Avg inference time (iters/s)"],
         rows
     )
+
+def evaluate_model_performance(inference_func: Callable , prompt: str) -> None:
+    counts = [1, 10, 100, 1000, 10000]
+
+    # store the elapsed time for each count of inputs
+    execution_times = _collect_execution_times_by_count(inference_func, counts, prompt)
+
+    _display_results_in_table(counts, execution_times)
 
