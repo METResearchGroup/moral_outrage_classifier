@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 from lib.timestamp_utils import get_current_timestamp
 from schemas.responses import MoralOutrage
 
-load_dotenv()
 
 class PerspectiveAPIModel:
     def __init__(self, api_key: str | None = None) -> None:
+        load_dotenv()
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
 
         if not self.api_key:
