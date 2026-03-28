@@ -1,8 +1,12 @@
 import time
 from typing import Callable, TypeVar, ParamSpec
 from functools import wraps
-from rich.console import Console
-from rich.table import Table
+try:
+    from rich.console import Console
+    from rich.table import Table
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
 
 
 T = TypeVar("T")
@@ -30,6 +34,9 @@ def init_model(model_class: type[T]) -> T:
     return model_class()
 
 def print_table(title: str, col_headers: list[str], rows: list[list[str]]) -> None:
+    if not RICH_AVAILABLE:
+        print("Rich library not available. Install it with 'uv sync --extra rich' to see formatted tables.")
+        return
     console=Console()
     table = Table(title=title)
     for header in col_headers:
@@ -56,7 +63,8 @@ def evaluate_model_performance(inference_func: Callable , prompt: str) -> None:
     elapsed_times = store_elapsed_times(inference_func, counts, prompt)
 
     # calculate the average time per input for each count. this will be used as a column in the table
-    time_per_input = [(count / elapsed) for (count, elapsed) in zip(counts, elapsed_times, strict=True)]
+    time_per_input = [(count / elapsed) if elapsed > 0 else float('inf') 
+                      for (count, elapsed) in zip(counts, elapsed_times, strict=True)]
     
     # prepare the rows for the table
     # each row: [input count, elapsed time, average inference time]
