@@ -28,7 +28,7 @@ if __name__ == "__main__":
     verify_diff_cases(perspective_model)
 
     print("\n")
-    
+
     evaluate_model_performance(
         perspective_model.batch_classify, "This is a test input to evaluate the performance of the Perspective API model."
     )
