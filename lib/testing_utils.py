@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.table import Table
 from uuid import uuid4
 
+
 T = TypeVar("T")
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -25,7 +26,6 @@ def track_runtime(should_print: bool) -> Callable[[Callable[P, R]], Callable[P, 
 
     return decorator
 
-
 @track_runtime(should_print=True)
 def init_model(model_class: type[T]) -> T:
     return model_class()
@@ -38,7 +38,6 @@ def print_table(title: str, col_headers: list[str], rows: list[list[str]]) -> No
     for row in rows:
         table.add_row(*row)
     console.print(table)
-
 
 def store_elapsed_times(inference_func: Callable, counts: list[int], prompt: str) -> list[float]:
     elapsed_times = []
