@@ -1,25 +1,61 @@
+import csv
+from pathlib import Path
+from typing import Iterator
+
+column_name_conversion = {
+    "id": ["id", "tweet_id"],
+    "text": ["text", "body"],
+    "gold_label": ["gold_label", "outrage", "pers_outrage_label"],
+}
+
+
 class DataLoader:
     def __init__(self, input_path: str, output_path: str, batch_size: int):
         self.data: list[tuple[str, int]] = []
+
+        path = Path(input_path)
+        if not path.is_file():
+            raise FileNotFoundError(f"Input path {input_path} is not a valid file.")
         self.input_path = input_path
         self.output_path = output_path
         self.batch_size = batch_size
 
+    def _return_already_processed_ids(self) -> set[str]:
+        already_processed_ids = set()
+        try:
+            with open(self.output_path, "r") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    already_processed_ids.add(row["id"])
+        except FileNotFoundError:
+            # if output file doesn't exist yet, no records have been processed.
+            pass
+        return already_processed_ids
+    
+    def _return_new_records(self, already_processed_ids: set[str]) -> list[tuple[str, int]]:
+        new_data = []
+        with open(self.input_path, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
+                if id not in already_processed_ids:
+                    text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
+                    gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
+                    gold_label = int(gold_label_str) if gold_label_str is not None else None
+                    new_data.append((text, gold_label))
+
+        return new_data
+
     def load_data(self):
-        # deal with all the steps related to loading the data. Should save the resulting output to `self.data` in (input, output) pairs, where input = the text string, output = label (0/1) for moral outrage.
-        # also should manage filtering out "already-processed" IDs. This way, EvaluationHarness can assume that loaded data is already filtered out.
-        self.filter_already_processed_records()
+        new_data = self.filter_already_processed_records()
+        self.data.extend(new_data)
 
-        # iterate through input file in batch, if the id of the record is not in the set of already processed records, then we keep the record and add it to self.data. Otherwise, we skip the record. 
+    def filter_already_processed_records(self) -> list[tuple[str, int]]:
+        already_processed_ids = self._return_already_processed_ids()
+        new_data = self._return_new_records(already_processed_ids)
 
-    def filter_already_processed_records(self):
-        pass
-        # declare and initialize a set storing all rows in output path
-        # read output file in batch, and puts all id's into a set
-        # iterate through input file in batch, and only keep those records whose id is not in the set of already processed records.
-        # return the id's of records that are not in the set of already processed records.
+        return new_data
 
-    def __iter__(self) -> list[tuple[str, int]]:
+    def __iter__(self) -> Iterator[list[tuple[str, int]]]:
         for i in range(0, len(self.data), self.batch_size):
             yield self.data[i:i + self.batch_size]
-          # review "dunder methods" and "__iter__" on how to define iterators. This method should iterate the self.data to get a batch of  [(input, output)] pairs during iteration. For example, if batch size = 10, we should have [(x_1, y_1), ..., (x_10, y_10)]. Make sure to make this also robust if the sample size is not a multiple of the batch size (e.g., you have 9 training samples but a batch size of 10, or if you have 21 training samples but a batch size of 10). Also look up generators in Python and the difference between return vs. yield.
