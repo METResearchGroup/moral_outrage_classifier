@@ -20,6 +20,7 @@ class DataLoader:
         self.output_path = output_path
         self.batch_size = batch_size
 
+    # puts all of the id's from output path into a set
     def _return_already_processed_ids(self) -> set[str]:
         already_processed_ids = set()
         try:
@@ -32,6 +33,7 @@ class DataLoader:
             pass
         return already_processed_ids
     
+    # use the set of already processed id's to filter out records from input path
     def _return_new_records(self, already_processed_ids: set[str]) -> list[tuple[str, int]]:
         new_data = []
         with open(self.input_path, "r") as f:
