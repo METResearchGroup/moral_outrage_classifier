@@ -19,11 +19,11 @@ class EvaluationHarness:
           input_path: str,
           output_path: str,
           batch_size: int,
-          models: list[str]
+          models: list[str],
+          max_rows: int,
     ):
-        self.dataloader = DataLoader(input_path=input_path, output_path=output_path, batch_size=batch_size)
+        self.dataloader = DataLoader(input_path=input_path, output_path=output_path, batch_size=batch_size, max_rows=max_rows)
         self.input_path = input_path
-        # self.batch_size = batch_size
         self.output_path = output_path
         self.models = models
 
@@ -45,10 +45,16 @@ class EvaluationHarness:
             if f.tell() == 0:
                 writer.writeheader()
             for sample, prediction in zip(batch, predictions, strict=True):
-                pred_label = prediction.moral_outrage_score if prediction is not None else None
-                if model_name == "perspective_api":
-                    pred_label = 1 if pred_label is not None and pred_label > 0.7 else None
+                if prediction is None:
+                    pred_label = None
+                else:
+                    if model_name == "perspective_api":
+                        pred_label = 1 if prediction.moral_outrage_score > 0.7 else 0
+                    else:
+                        pred_label = prediction.moral_outrage_score 
+
                 is_correct = int(sample["gold_label"]) == int(pred_label) if pred_label is not None else None
+
                 writer.writerow({
                     "id": sample["id"],
                     "dataset": self.input_path,
@@ -115,10 +121,10 @@ class EvaluationHarness:
         for model_name, rows in rows_by_model.items():
             total_samples = len(rows)
 
-            tp = sum(1 for row in rows if float(row["pred_label"]) == 1 and row["gold_label"] == 1)
-            tn = sum(1 for row in rows if float(row["pred_label"]) == 0 and row["gold_label"] == 0)
-            fp = sum(1 for row in rows if float(row["pred_label"]) == 1 and row["gold_label"] == 0)
-            fn = sum(1 for row in rows if float(row["pred_label"]) == 0 and row["gold_label"] == 1)
+            tp = sum(1 for row in rows if int(row["pred_label"]) == 1 and int(row["gold_label"]) == 1)
+            tn = sum(1 for row in rows if int(row["pred_label"]) == 0 and int(row["gold_label"]) == 0)
+            fp = sum(1 for row in rows if int(row["pred_label"]) == 1 and int(row["gold_label"]) == 0)
+            fn = sum(1 for row in rows if int(row["pred_label"]) == 0 and int(row["gold_label"]) == 1)
 
             accuracy = (tp + tn) / total_samples if total_samples > 0 else 0.0
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
