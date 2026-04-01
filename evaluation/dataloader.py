@@ -10,7 +10,7 @@ column_name_conversion = {
 
 
 class DataLoader:
-    def __init__(self, input_path: str, output_path: str, batch_size: int):
+    def __init__(self, input_path: str, output_path: str, batch_size: int, max_rows: int = float('inf')):
         self.data: list[dict[str, str | int]] = []
 
         path = Path(input_path)
@@ -19,6 +19,7 @@ class DataLoader:
         self.input_path = input_path
         self.output_path = output_path
         self.batch_size = batch_size
+        self.max_rows = max_rows
 
         # prevent double labeling of texts ie same text appearing multiple times in input file
         self.texts = set()
@@ -54,6 +55,8 @@ class DataLoader:
             reader = csv.DictReader(f)
             for row in reader:
                 new_data = self._find_new_data(row, already_processed_ids, new_data)
+                if len(self.texts) >= self.max_rows:
+                    break
 
         return new_data
 
