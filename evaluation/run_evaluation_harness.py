@@ -4,6 +4,7 @@ from models.perspective_api.model import PerspectiveAPIModel
 from evaluation.dataloader import DataLoader
 from pathlib import Path
 from lib.testing_utils import print_table
+from schemas.responses import MoralOutrage
 
 
 MODEL_REGISTRY: dict[str, type] = {
@@ -38,7 +39,7 @@ class EvaluationHarness:
         path = Path(self.output_path)
         return str(path.parent / f"{path.stem}_{model_name}{path.suffix}")
 
-    def _write_to_model_csv(self, path: str, model_name: str, batch: list[dict[str, str | int]], predictions: list[PerspectiveAPIModel]) -> None:
+    def _write_to_model_csv(self, path: str, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
         with open(path, "a") as f:
             writer = csv.DictWriter(f, fieldnames=["id", "dataset", "text", "gold_label", "pred_label", "is_correct"])
             if f.tell() == 0:
@@ -137,16 +138,3 @@ class EvaluationHarness:
         )
 
 
-eh = EvaluationHarness(
-    input_path="evaluation/sample_data/26k_training_data.csv",
-    output_path="evaluation/sample_data/sample_output.csv",
-    batch_size=10,
-    models=["perspective_api"]
-)
-
-print("LOADING DATA")
-eh.load_data()
-print("DONE LOADING DATA, NOW RUNNING EVALUATION")
-eh.run_evaluation()
-print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
-eh.display_results()
