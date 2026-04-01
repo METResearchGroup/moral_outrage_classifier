@@ -1,7 +1,6 @@
 import csv
 from pathlib import Path
 from typing import Iterator
-from lib.evaluation_helpers import is_english
 
 column_name_conversion = {
     "id": ["id", "tweet_id"],
@@ -40,7 +39,7 @@ class DataLoader:
     def _find_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> list[dict[str, str | int]]:
         id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
         text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
-        if is_english(text) and id not in already_processed_ids and text not in self.texts:
+        if id not in already_processed_ids and text not in self.texts:
             gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
             gold_label = int(gold_label_str) if gold_label_str is not None else None
             new_data.append({"text": text, "gold_label": gold_label, "id": id})
