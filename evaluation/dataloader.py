@@ -37,7 +37,7 @@ class DataLoader:
             pass
         return already_processed_ids
     
-    def _find_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> list[dict[str, str | int]]:
+    def _append_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> None:
         id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
         text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
         if id not in already_processed_ids and text not in self.texts:
@@ -46,15 +46,13 @@ class DataLoader:
             new_data.append({"text": text, "gold_label": gold_label, "id": id})
             self.texts.add(text)
 
-        return new_data
-
     # use the set of already processed id's to filter out records from input path
     def _return_new_records(self, already_processed_ids: set[str]) -> list[dict[str, str | int]]:
         new_data = []
         with open(self.input_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                new_data = self._find_new_data(row, already_processed_ids, new_data)
+                self._append_new_data(row, already_processed_ids, new_data)
                 if len(self.texts) >= self.max_rows:
                     break
 
