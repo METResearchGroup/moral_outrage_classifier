@@ -41,7 +41,6 @@ class PerspectiveAPIModel:
             except HttpError as e:
                 if "LANGUAGE_NOT_SUPPORTED_BY_ATTRIBUTE" in str(e):
                     responses.append(None)
-                    print("appended none")
                 else:
                     raise RuntimeError(f"API error for text '{text[:50]}': {e}") from e  
 
