@@ -1,6 +1,7 @@
 import csv
 from pathlib import Path
 from typing import Iterator
+from lib.evaluation_helpers import is_english
 
 column_name_conversion = {
     "id": ["id", "tweet_id"],
@@ -11,7 +12,7 @@ column_name_conversion = {
 
 class DataLoader:
     def __init__(self, input_path: str, output_path: str, batch_size: int):
-        self.data: list[tuple[str, int]] = []
+        self.data: list[dict[str, str | int]] = []
 
         path = Path(input_path)
         if not path.is_file():
@@ -19,6 +20,9 @@ class DataLoader:
         self.input_path = input_path
         self.output_path = output_path
         self.batch_size = batch_size
+
+        # prevent double labeling of texts ie same text appearing multiple times in input file
+        self.texts = set()
 
     # puts all of the id's from output path into a set
     def _return_already_processed_ids(self) -> set[str]:
@@ -33,18 +37,24 @@ class DataLoader:
             pass
         return already_processed_ids
     
+    def _find_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> list[dict[str, str | int]]:
+        id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
+        text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
+        if is_english(text) and id not in already_processed_ids and text not in self.texts:
+            gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
+            gold_label = int(gold_label_str) if gold_label_str is not None else None
+            new_data.append({"text": text, "gold_label": gold_label, "id": id})
+            self.texts.add(text)
+
+        return new_data
+
     # use the set of already processed id's to filter out records from input path
-    def _return_new_records(self, already_processed_ids: set[str]) -> list[tuple[str, int]]:
+    def _return_new_records(self, already_processed_ids: set[str]) -> list[dict[str, str | int]]:
         new_data = []
         with open(self.input_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
-                if id not in already_processed_ids:
-                    text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
-                    gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
-                    gold_label = int(gold_label_str) if gold_label_str is not None else None
-                    new_data.append((text, gold_label))
+                new_data = self._find_new_data(row, already_processed_ids, new_data)
 
         return new_data
 
@@ -52,12 +62,12 @@ class DataLoader:
         new_data = self.filter_already_processed_records()
         self.data.extend(new_data)
 
-    def filter_already_processed_records(self) -> list[tuple[str, int]]:
+    def filter_already_processed_records(self) -> list[dict[str, str | int]]:
         already_processed_ids = self._return_already_processed_ids()
         new_data = self._return_new_records(already_processed_ids)
 
         return new_data
 
-    def __iter__(self) -> Iterator[list[tuple[str, int]]]:
+    def __iter__(self) -> Iterator[list[dict[str, str | int]]]:
         for i in range(0, len(self.data), self.batch_size):
             yield self.data[i:i + self.batch_size]
