@@ -4,65 +4,95 @@ import pytest
 
 # Input file fixtures
 @pytest.fixture
-def empty_input_file(tmp_path):
-    f = tmp_path / "input.csv"
-    f.write_text("")
-    return f
-
-@pytest.fixture
 def input_file_with_headers(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("id,text,gold_label\n")
+    f.write_text(
+        "id,text,gold_label\n"
+    )
     return f
 
 @pytest.fixture
 def input_file_with_rows(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("id,text,gold_label\n1,hello world,0\n2,this is outrageous,1\n")
+    f.write_text(
+        "id,text,gold_label\n"
+        "1,hello world,0\n"
+        "2,this is outrageous,1\n"
+    )
     return f
 
 @pytest.fixture
 def input_file_with_three_rows(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("id,text,gold_label\n1,hello world,0\n2,this is outrageous,1\n3,so angry,1\n")
+    f.write_text(
+        "id,text,gold_label\n"
+        "1,hello world,0\n"
+        "2,this is outrageous,1\n"
+        "3,so angry,1\n"
+    )
     return f
 
-@pytest.fixture
-def input_file_with_missing_gold_label(tmp_path):
-    f = tmp_path / "input.csv"
-    f.write_text("id,text\n1,hello world\n2,this is outrageous\n")
-    return f
-
+# column header variation input files
 @pytest.fixture
 def input_file_with_tweet_id_column(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("tweet_id,text,gold_label\n1,hello world,0\n2,this is outrageous,1\n")
+    f.write_text(
+        "tweet_id,text,gold_label\n"
+        "1,hello world,0\n"
+        "2,this is outrageous,1\n"
+    )
     return f
 
 @pytest.fixture
 def input_file_with_body_column(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("id,body,gold_label\n1,hello world,0\n2,this is outrageous,1\n")
+    f.write_text(
+        "id,body,gold_label\n"
+        "1,hello world,0\n"
+        "2,this is outrageous,1\n"
+    )
     return f
 
-# column header variation input files
 @pytest.fixture
 def input_file_with_outrage_column(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("id,text,outrage\n1,hello world,0\n2,this is outrageous,1\n")
+    f.write_text(
+        "id,text,outrage\n"
+        "1,hello world,0\n"
+        "2,this is outrageous,1\n"
+    )
     return f
 
 @pytest.fixture
 def input_file_with_pers_outrage_label_column(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("id,text,pers_outrage_label\n1,hello world,0\n2,this is outrageous,1\n")
+    f.write_text(
+        "id,text,pers_outrage_label\n"
+        "1,hello world,0\n"
+        "2,this is outrageous,1\n"
+    )
     return f
 
 @pytest.fixture
 def input_file_with_all_alternative_columns(tmp_path):
     f = tmp_path / "input.csv"
-    f.write_text("tweet_id,body,pers_outrage_label\n1,hello world,0\n2,this is outrageous,1\n")
+    f.write_text(
+        "tweet_id,body,pers_outrage_label\n"
+        "1,hello world,0\n"
+        "2,this is outrageous,1\n"
+    )
     return f
+
+
+@pytest.fixture(params=[
+    "input_file_with_tweet_id_column",
+    "input_file_with_body_column",
+    "input_file_with_outrage_column",
+    "input_file_with_pers_outrage_label_column",
+    "input_file_with_all_alternative_columns",
+])
+def column_variation_input(request):
+    return request.getfixturevalue(request.param)
 
 
 # Output file fixtures
@@ -70,12 +100,6 @@ def input_file_with_all_alternative_columns(tmp_path):
 def empty_output_file(tmp_path):
     f = tmp_path / "output.csv"
     f.write_text("")
-    return f
-
-@pytest.fixture
-def output_file_with_headers(tmp_path):
-    f = tmp_path / "output.csv"
-    f.write_text("id,dataset,text,gold_label,model,pred_label,is_correct\n")
     return f
 
 @pytest.fixture
@@ -141,31 +165,12 @@ class TestReturnNewRecords:
         result = loader._return_new_records({"1", "2"})
         assert result == []
 
-    def test_column_name_variations(self, tmp_path):
-        output = tmp_path / "output.csv"
-
-        variations = [
-            ("tweet_id,text,gold_label\n1,hello world,0\n", "tweet_id"),
-            ("id,body,gold_label\n1,hello world,0\n", "body"),
-            ("id,text,outrage\n1,hello world,0\n", "outrage"),
-            ("id,text,pers_outrage_label\n1,hello world,0\n", "pers_outrage_label"),
-            ("tweet_id,body,pers_outrage_label\n1,hello world,0\n", "all alternatives"),
-        ]
-
-        for content, label in variations:
-            f = tmp_path / "input.csv"
-            f.write_text(content)
-            loader = DataLoader(str(f), str(output), batch_size=10)
-            result = loader._return_new_records(set())
-            assert len(result) == 1, f"failed for variation: {label}"
-            assert result[0]["text"] == "hello world", f"failed for variation: {label}"
-            assert result[0]["gold_label"] == 0, f"failed for variation: {label}"
-
-    def test_missing_gold_label(self, input_file_with_missing_gold_label, nonexistent_output_file):
-        loader = DataLoader(str(input_file_with_missing_gold_label), str(nonexistent_output_file), batch_size=10)
+    def test_column_name_variations(self, column_variation_input, nonexistent_output_file):
+        loader = DataLoader(str(column_variation_input), str(nonexistent_output_file), batch_size=10)
         result = loader._return_new_records(set())
-        assert result[0]["gold_label"] is None
-        assert result[1]["gold_label"] is None
+        assert len(result) == 2
+        assert result[0]["text"] == "hello world"
+        assert result[0]["gold_label"] == 0
 
 
 class TestIter:
