@@ -22,10 +22,13 @@ class EvaluationHarness:
           models: list[str],
           max_rows: int | float = float("inf"),
     ):
-        self.dataloader = DataLoader(input_path=input_path, output_path=output_path, batch_size=batch_size, max_rows=max_rows)
         self.input_path = input_path
         self.output_path = output_path
         self.models = models
+        self.dataloaders: dict[str, DataLoader] = {
+            model_name: DataLoader(input_path=input_path, output_path=output_path, batch_size=batch_size, model_name=model_name, max_rows=max_rows)
+            for model_name in models
+        }
 
     @classmethod
     def validate_models(cls, models: list[str]):
@@ -33,7 +36,8 @@ class EvaluationHarness:
             raise ValueError(f"Please provide a valid model. {models} is invalid")
 
     def load_data(self) -> None:
-        self.dataloader.load_data()
+        for dataloader in self.dataloaders.values():
+            dataloader.load_data()
 
     def _get_model_output_path(self, model_name: str) -> str:
         path = Path(self.output_path)
@@ -67,7 +71,7 @@ class EvaluationHarness:
     def _run_model_evaluation(self, model_name: str) -> None:
         model = MODEL_REGISTRY[model_name]()
         path = self._get_model_output_path(model_name)
-        for batch in self.dataloader:
+        for batch in self.dataloaders[model_name]:
             texts = [sample["text"] for sample in batch]
 
             try:
@@ -115,23 +119,40 @@ class EvaluationHarness:
         
         return rows_by_model
 
+    def _calculate_run_metrics(self, rows: list[dict[str, str | int]]) -> tuple[float, float, float, float]:
+        # csv.DictWriter writes "" when it wants to write None to a csv file, so need to check for "" when a prediction failed from HttpError
+        total_samples = sum(1 for row in rows if row["pred_label"] != "")
+
+        tp = sum(1 for row in rows
+                 if row["pred_label"] != ""
+                 and int(row["pred_label"]) == 1
+                 and int(row["gold_label"]) == 1)
+        tn = sum(1 for row in rows
+                 if row["pred_label"] != ""
+                 and int(row["pred_label"]) == 0
+                 and int(row["gold_label"]) == 0)
+        fp = sum(1 for row in rows
+                 if row["pred_label"] != ""
+                 and int(row["pred_label"]) == 1
+                 and int(row["gold_label"]) == 0)
+        fn = sum(1 for row in rows
+                 if row["pred_label"] != ""
+                 and int(row["pred_label"]) == 0
+                 and int(row["gold_label"]) == 1)
+
+        accuracy = (tp + tn) / total_samples if total_samples > 0 else 0.0
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+
+        return total_samples, accuracy, precision, recall, f1
+
     def _prepare_table_rows(self) -> list[list[str]]:
         rows_by_model = self._get_rows_by_model_dict()
         
         table_rows = []
         for model_name, rows in rows_by_model.items():
-            total_samples = len(rows)
-
-            tp = sum(1 for row in rows if int(row["pred_label"]) == 1 and int(row["gold_label"]) == 1)
-            tn = sum(1 for row in rows if int(row["pred_label"]) == 0 and int(row["gold_label"]) == 0)
-            fp = sum(1 for row in rows if int(row["pred_label"]) == 1 and int(row["gold_label"]) == 0)
-            fn = sum(1 for row in rows if int(row["pred_label"]) == 0 and int(row["gold_label"]) == 1)
-
-            accuracy = (tp + tn) / total_samples if total_samples > 0 else 0.0
-            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-
+            total_samples, accuracy, precision, recall, f1 = self._calculate_run_metrics(rows)
             table_rows.append([model_name, f"{accuracy:.4f}", f"{precision:.4f}", f"{recall:.4f}", f"{f1:.4f}", str(total_samples)])
 
         return table_rows
