@@ -52,6 +52,7 @@ jobs:
         with:
           files: |
             **/*.py
+            pyproject.toml
 
       - name: Run tests
         if: steps.changed.outputs.any_changed == 'true'
