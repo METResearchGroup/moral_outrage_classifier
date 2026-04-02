@@ -1,13 +1,21 @@
 from evaluation.run_evaluation_harness import EvaluationHarness
+from lib.timestamp_utils import get_current_timestamp
+from pathlib import Path
+
+import json
+import subprocess
 import typer
+import time
 
 def main(
     input_path: str = typer.Option(..., help="Path to the input CSV file"),
     output_path: str = typer.Option(..., help="Path to the output CSV file"),
     models: list[str] = typer.Option(..., help="List of models to evaluate"),
-    max_rows: int = typer.Option(..., help="Maximum number of rows to process"),
+    max_rows: int = typer.Option(-1, help="Maximum number of rows to process"),
     batch_size: int = typer.Option(10, help="Size of each batch for processing")
 ):
+    
+    if max_rows == -1: max_rows = float('inf')
     eh = EvaluationHarness(
         input_path=input_path,
         output_path=output_path,
@@ -16,12 +24,39 @@ def main(
         max_rows=max_rows
     )
 
+    timestamp = get_current_timestamp()
+    eh.metadata_dir = Path(output_path).parent / timestamp
+    eh.metadata_dir.mkdir(parents=True, exist_ok=True)
+
     print("LOADING DATA")
     eh.load_data()
     print("DONE LOADING DATA, NOW RUNNING EVALUATION")
+    start = time.perf_counter()
     eh.run_evaluation()
+    elapsed = time.perf_counter() - start
     print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
     eh.display_results()
+
+    git_hash = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True, text=True
+    ).stdout.strip()
+
+    metadata = {
+        "git_commit_hash": git_hash,
+        "timestamp": timestamp,
+        "cli_args": {
+            "input_path": input_path,
+            "output_path": output_path,
+            "models": models,
+            "max_rows": max_rows,
+            "batch_size": batch_size,
+        },
+        "runtime_seconds": round(elapsed, 4),
+    }
+
+    with open(eh.metadata_dir / "metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
 
 
 if __name__ == "__main__":
