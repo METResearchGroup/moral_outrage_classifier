@@ -10,7 +10,7 @@ column_name_conversion = {
 
 
 class DataLoader:
-    def __init__(self, input_path: str, output_path: str, batch_size: int, max_rows: int = float('inf')):
+    def __init__(self, input_path: str, output_path: str, batch_size: int, max_rows: int | float = float('inf')):
         self.data: list[dict[str, str | int]] = []
 
         path = Path(input_path)
