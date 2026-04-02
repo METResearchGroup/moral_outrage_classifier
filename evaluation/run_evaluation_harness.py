@@ -120,7 +120,7 @@ class EvaluationHarness:
         return rows_by_model
 
     def _calculate_run_metrics(self, rows: list[dict[str, str | int]]) -> tuple[float, float, float, float]:
-        # csv.DictWriter writes "" when it wants to write None to a csv file, so need to check for "" when a prediction failed from HttpError
+        # csv.DictWfriter writes "" when it wants to write None to a csv file, so need to check for "" when a prediction failed from HttpError
         total_samples = sum(1 for row in rows if row["pred_label"] != "")
 
         tp = sum(1 for row in rows
