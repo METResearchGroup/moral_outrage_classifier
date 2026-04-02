@@ -27,7 +27,7 @@ def main(
     )
 
     timestamp = get_current_timestamp()
-    eh.metadata_dir = Path(output_path).parent / timestamp
+    metadata_dir = Path(output_path).parent / timestamp
 
     print("LOADING DATA")
     eh.load_data()
@@ -56,8 +56,8 @@ def main(
         "runtime_seconds": round(elapsed, 4),
     }
 
-    eh.metadata_dir.mkdir(parents=True, exist_ok=True)
-    with open(eh.metadata_dir / "metadata.json", "w") as f:
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+    with open(metadata_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
 
