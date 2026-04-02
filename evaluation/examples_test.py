@@ -13,8 +13,7 @@ def get_git_hash():
         capture_output=True, text=True
     ).stdout.strip()
 
-def get_run_metadata(input_path, output_path, models, max_rows, batch_size, runtime_seconds):
-    timestamp = get_current_timestamp()
+def get_run_metadata(input_path, output_path, models, max_rows, batch_size, runtime_seconds, timestamp):
     git_hash = get_git_hash()
     return {
         "git_commit_hash": git_hash,
@@ -29,7 +28,12 @@ def get_run_metadata(input_path, output_path, models, max_rows, batch_size, runt
         "runtime_seconds": round(runtime_seconds, 4),
     }
 
-def write_metadata_dir(metadata_dir, metadata):
+def write_metadata_dir(input_path, output_path, models, max_rows, batch_size, elapsed):
+    timestamp = get_current_timestamp()
+    metadata = get_run_metadata(input_path, output_path, models, max_rows, batch_size, elapsed, timestamp)
+
+    metadata_dir = Path(output_path).parent / timestamp
+
     metadata_dir.mkdir(parents=True, exist_ok=True)
     with open(metadata_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
@@ -53,9 +57,6 @@ def main(
         max_rows=max_rows
     )
 
-    timestamp = get_current_timestamp()
-    metadata_dir = Path(output_path).parent / timestamp
-
     print("LOADING DATA")
     eh.load_data()
 
@@ -67,8 +68,7 @@ def main(
     print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
     eh.display_results()
 
-    metadata = get_run_metadata(input_path, output_path, models, max_rows, batch_size, elapsed)
-    write_metadata_dir(metadata_dir, metadata)
+    write_metadata_dir(input_path, output_path, models, max_rows, batch_size, elapsed)
 
 
 if __name__ == "__main__":
