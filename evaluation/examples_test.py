@@ -16,6 +16,8 @@ def main(
 ):
     
     if max_rows == -1: max_rows = float('inf')
+
+    EvaluationHarness.validate_models(models)
     eh = EvaluationHarness(
         input_path=input_path,
         output_path=output_path,
