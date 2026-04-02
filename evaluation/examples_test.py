@@ -60,14 +60,13 @@ def main(
     start = time.perf_counter()
     eh.run_evaluation()
     elapsed = time.perf_counter() - start
-    
+
     print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
     eh.display_results()
 
     git_hash = get_git_hash()
     metadata = get_run_metadata(input_path, output_path, models, max_rows, batch_size, timestamp, git_hash)
     write_metadata_dir(metadata_dir, metadata)
-
 
 
 if __name__ == "__main__":
