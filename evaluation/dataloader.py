@@ -20,7 +20,7 @@ class DataLoader:
         self.output_path = output_path
         self.batch_size = batch_size
         self.max_rows = max_rows
-        
+
         model_output_path = Path(output_path)
         self.model_output_path = str(model_output_path.parent / f"{model_output_path.stem}_{model_name}{model_output_path.suffix}")
 
@@ -41,9 +41,9 @@ class DataLoader:
         return already_processed_ids
     
     def _append_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> None:
-        id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
+        post_id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
         text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
-        if id not in already_processed_ids and text not in self.texts:
+        if post_id not in already_processed_ids and text not in self.texts:
             gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
             gold_label = int(gold_label_str) if gold_label_str is not None else None
             new_data.append({"text": text, "gold_label": gold_label, "id": id})
