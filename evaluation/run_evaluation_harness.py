@@ -20,7 +20,7 @@ class EvaluationHarness:
           output_path: str,
           batch_size: int,
           models: list[str],
-          max_rows: int,
+          max_rows: int | float = float("inf"),
     ):
         self.dataloader = DataLoader(input_path=input_path, output_path=output_path, batch_size=batch_size, max_rows=max_rows)
         self.input_path = input_path
@@ -84,9 +84,10 @@ class EvaluationHarness:
                 writer.writerow(row)
 
     def _merge_model_results(self) -> None:
-        with open(self.output_path, "w") as f_out:
+        with open(self.output_path, "a") as f_out:
             writer = csv.DictWriter(f_out, fieldnames=["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"])
-            writer.writeheader()
+            if f_out.tell() == 0:
+                writer.writeheader()
             for model_name in self.models:
                 path = self._get_model_output_path(model_name)
                 self._copy_model_results_to_merged_csv(path, writer, model_name)
