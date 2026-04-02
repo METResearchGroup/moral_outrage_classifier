@@ -125,18 +125,22 @@ class EvaluationHarness:
 
         tp = sum(1 for row in rows
                  if row["pred_label"] != ""
+                 and row["gold_label"] != ""
                  and int(row["pred_label"]) == 1
                  and int(row["gold_label"]) == 1)
         tn = sum(1 for row in rows
                  if row["pred_label"] != ""
+                 and row["gold_label"] != ""
                  and int(row["pred_label"]) == 0
                  and int(row["gold_label"]) == 0)
         fp = sum(1 for row in rows
                  if row["pred_label"] != ""
+                 and row["gold_label"] != ""
                  and int(row["pred_label"]) == 1
                  and int(row["gold_label"]) == 0)
         fn = sum(1 for row in rows
                  if row["pred_label"] != ""
+                 and row["gold_label"] != ""
                  and int(row["pred_label"]) == 0
                  and int(row["gold_label"]) == 1)
 

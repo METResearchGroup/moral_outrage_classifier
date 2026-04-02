@@ -45,7 +45,10 @@ class DataLoader:
         text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
         if post_id not in already_processed_ids and text not in self.texts:
             gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
-            gold_label = int(gold_label_str) if gold_label_str is not None else None
+            try:
+                gold_label = int(gold_label_str) if gold_label_str is not None else None
+            except (ValueError, TypeError):
+                gold_label = None
             new_data.append({"text": text, "gold_label": gold_label, "id": post_id})
             self.texts.add(text)
 
