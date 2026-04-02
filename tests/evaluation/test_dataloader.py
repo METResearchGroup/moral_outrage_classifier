@@ -129,44 +129,44 @@ def output_file_with_all_rows(tmp_path, input_file_with_rows):
 class TestConstructor:
     def test_nonexistent_path(self, nonexistent_output_file, tmp_path):
         with pytest.raises(FileNotFoundError):
-            DataLoader(input_path=str(tmp_path / "nonexistent.csv"), output_path=str(nonexistent_output_file), batch_size=10)
+            DataLoader(input_path=str(tmp_path / "nonexistent.csv"), output_path=str(nonexistent_output_file), batch_size=10, model_name="perspective_api")
 
 
 class TestReturnAlreadyProcessedIds:
     def test_nonexistent_output_file(self, input_file_with_rows, nonexistent_output_file):
-        loader = DataLoader(str(input_file_with_rows), str(nonexistent_output_file), batch_size=10)
+        loader = DataLoader(str(input_file_with_rows), str(nonexistent_output_file), batch_size=10, model_name="perspective_api")
         assert loader._return_already_processed_ids() == set()
 
     def test_empty_output_file(self, input_file_with_rows, empty_output_file):
-        loader = DataLoader(str(input_file_with_rows), str(empty_output_file), batch_size=10)
+        loader = DataLoader(str(input_file_with_rows), str(empty_output_file), batch_size=10, model_name="perspective_api")
         assert loader._return_already_processed_ids() == set()
 
     def test_nonempty_output_file(self, input_file_with_rows, output_file_with_rows):
-        loader = DataLoader(str(input_file_with_rows), str(output_file_with_rows), batch_size=10)
+        loader = DataLoader(str(input_file_with_rows), str(output_file_with_rows), batch_size=10, model_name="perspective_api")
         assert loader._return_already_processed_ids() == {"1"}
 
 
 class TestReturnNewRecords:
     def test_no_already_processed(self, input_file_with_rows, nonexistent_output_file):
-        loader = DataLoader(str(input_file_with_rows), str(nonexistent_output_file), batch_size=10)
+        loader = DataLoader(str(input_file_with_rows), str(nonexistent_output_file), batch_size=10, model_name="perspective_api")
         result = loader._return_new_records(set())
         assert len(result) == 2
         assert result[0] == {"id": "1", "text": "hello world", "gold_label": 0}
         assert result[1] == {"id": "2", "text": "this is outrageous", "gold_label": 1}
 
     def test_some_already_processed(self, input_file_with_rows, output_file_with_rows):
-        loader = DataLoader(str(input_file_with_rows), str(output_file_with_rows), batch_size=10)
+        loader = DataLoader(str(input_file_with_rows), str(output_file_with_rows), batch_size=10, model_name="perspective_api")
         result = loader._return_new_records({"1"})
         assert len(result) == 1
         assert result[0]["id"] == "2"
 
     def test_all_already_processed(self, input_file_with_rows, output_file_with_all_rows):
-        loader = DataLoader(str(input_file_with_rows), str(output_file_with_all_rows), batch_size=10)
+        loader = DataLoader(str(input_file_with_rows), str(output_file_with_all_rows), batch_size=10, model_name="perspective_api")
         result = loader._return_new_records({"1", "2"})
         assert result == []
 
     def test_column_name_variations(self, column_variation_input, nonexistent_output_file):
-        loader = DataLoader(str(column_variation_input), str(nonexistent_output_file), batch_size=10)
+        loader = DataLoader(str(column_variation_input), str(nonexistent_output_file), batch_size=10, model_name="perspective_api")
         result = loader._return_new_records(set())
         assert len(result) == 2
         assert result[0]["text"] == "hello world"
@@ -175,19 +175,19 @@ class TestReturnNewRecords:
 
 class TestIter:
     def test_empty_data(self, input_file_with_headers, nonexistent_output_file):
-        loader = DataLoader(str(input_file_with_headers), str(nonexistent_output_file), batch_size=10)
+        loader = DataLoader(str(input_file_with_headers), str(nonexistent_output_file), batch_size=10, model_name="perspective_api")
         loader.load_data()
         assert list(loader) == []
 
     def test_divisible_data_len(self, input_file_with_rows, nonexistent_output_file):
-        loader = DataLoader(str(input_file_with_rows), str(nonexistent_output_file), batch_size=2)
+        loader = DataLoader(str(input_file_with_rows), str(nonexistent_output_file), batch_size=2, model_name="perspective_api")
         loader.load_data()
         batches = list(loader)
         assert len(batches) == 1
         assert len(batches[0]) == 2
 
     def test_undivisible_data_len(self, input_file_with_three_rows, nonexistent_output_file):
-        loader = DataLoader(str(input_file_with_three_rows), str(nonexistent_output_file), batch_size=2)
+        loader = DataLoader(str(input_file_with_three_rows), str(nonexistent_output_file), batch_size=2, model_name="perspective_api")
         loader.load_data()
         batches = list(loader)
         assert len(batches) == 2
