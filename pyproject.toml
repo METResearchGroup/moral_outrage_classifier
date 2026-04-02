@@ -21,3 +21,7 @@ test = [
 examples = [
     "typer>=0.24.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
