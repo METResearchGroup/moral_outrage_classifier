@@ -10,7 +10,7 @@ column_name_conversion = {
 
 
 class DataLoader:
-    def __init__(self, input_path: str, output_path: str, batch_size: int, max_rows: int | float = float('inf')):
+    def __init__(self, input_path: str, output_path: str, batch_size: int, model_name: str, max_rows: int | float = float('inf')):
         self.data: list[dict[str, str | int]] = []
 
         path = Path(input_path)
@@ -20,6 +20,9 @@ class DataLoader:
         self.output_path = output_path
         self.batch_size = batch_size
         self.max_rows = max_rows
+        
+        model_output_path = Path(output_path)
+        self.model_output_path = str(model_output_path.parent / f"{model_output_path.stem}_{model_name}{model_output_path.suffix}")
 
         # prevent double labeling of texts ie same text appearing multiple times in input file
         self.texts = set()
@@ -27,14 +30,14 @@ class DataLoader:
     # puts all of the id's from output path into a set
     def _return_already_processed_ids(self) -> set[str]:
         already_processed_ids = set()
-        try:
-            with open(self.output_path, "r") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    already_processed_ids.add(row["id"])
-        except FileNotFoundError:
-            # if output file doesn't exist yet, no records have been processed.
-            pass
+        for path in [self.output_path, self.model_output_path]:
+            try:
+                with open(path, "r") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        already_processed_ids.add(row["id"])
+            except FileNotFoundError:
+                pass
         return already_processed_ids
     
     def _append_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> None:
