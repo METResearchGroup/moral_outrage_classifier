@@ -13,7 +13,9 @@ def get_git_hash():
         capture_output=True, text=True
     ).stdout.strip()
 
-def get_run_metadata(input_path, output_path, models, max_rows, batch_size, timestamp, git_hash):
+def get_run_metadata(input_path, output_path, models, max_rows, batch_size, runtime_seconds):
+    timestamp = get_current_timestamp()
+    git_hash = get_git_hash()
     return {
         "git_commit_hash": git_hash,
         "timestamp": timestamp,
@@ -23,7 +25,8 @@ def get_run_metadata(input_path, output_path, models, max_rows, batch_size, time
             "models": models,
             "max_rows": max_rows if max_rows != float('inf') else None,
             "batch_size": batch_size,
-        }
+        },
+        "runtime_seconds": round(runtime_seconds, 4),
     }
 
 def write_metadata_dir(metadata_dir, metadata):
@@ -64,8 +67,7 @@ def main(
     print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
     eh.display_results()
 
-    git_hash = get_git_hash()
-    metadata = get_run_metadata(input_path, output_path, models, max_rows, batch_size, timestamp, git_hash)
+    metadata = get_run_metadata(input_path, output_path, models, max_rows, batch_size, elapsed)
     write_metadata_dir(metadata_dir, metadata)
 
 
