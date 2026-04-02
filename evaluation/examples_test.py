@@ -7,6 +7,30 @@ import subprocess
 import typer
 import time
 
+def get_git_hash():
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True, text=True
+    ).stdout.strip()
+
+def get_run_metadata(input_path, output_path, models, max_rows, batch_size, timestamp, git_hash):
+    return {
+        "git_commit_hash": git_hash,
+        "timestamp": timestamp,
+        "cli_args": {
+            "input_path": input_path,
+            "output_path": output_path,
+            "models": models,
+            "max_rows": max_rows if max_rows != float('inf') else None,
+            "batch_size": batch_size,
+        }
+    }
+
+def write_metadata_dir(metadata_dir, metadata):
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+    with open(metadata_dir / "metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+
 def main(
     input_path: str = typer.Option(..., help="Path to the input CSV file"),
     output_path: str = typer.Option(..., help="Path to the output CSV file"),
@@ -31,34 +55,19 @@ def main(
 
     print("LOADING DATA")
     eh.load_data()
+
     print("DONE LOADING DATA, NOW RUNNING EVALUATION")
     start = time.perf_counter()
     eh.run_evaluation()
     elapsed = time.perf_counter() - start
+    
     print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
     eh.display_results()
 
-    git_hash = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        capture_output=True, text=True
-    ).stdout.strip()
+    git_hash = get_git_hash()
+    metadata = get_run_metadata(input_path, output_path, models, max_rows, batch_size, timestamp, git_hash)
+    write_metadata_dir(metadata_dir, metadata)
 
-    metadata = {
-        "git_commit_hash": git_hash,
-        "timestamp": timestamp,
-        "cli_args": {
-            "input_path": input_path,
-            "output_path": output_path,
-            "models": models,
-            "max_rows": max_rows if max_rows != float('inf') else None,
-            "batch_size": batch_size,
-        },
-        "runtime_seconds": round(elapsed, 4),
-    }
-
-    metadata_dir.mkdir(parents=True, exist_ok=True)
-    with open(metadata_dir / "metadata.json", "w") as f:
-        json.dump(metadata, f, indent=2)
 
 
 if __name__ == "__main__":
