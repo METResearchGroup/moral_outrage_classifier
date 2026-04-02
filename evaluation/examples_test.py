@@ -26,7 +26,6 @@ def main(
 
     timestamp = get_current_timestamp()
     eh.metadata_dir = Path(output_path).parent / timestamp
-    eh.metadata_dir.mkdir(parents=True, exist_ok=True)
 
     print("LOADING DATA")
     eh.load_data()
@@ -49,12 +48,13 @@ def main(
             "input_path": input_path,
             "output_path": output_path,
             "models": models,
-            "max_rows": max_rows,
+            "max_rows": max_rows if max_rows != float('inf') else None,
             "batch_size": batch_size,
         },
         "runtime_seconds": round(elapsed, 4),
     }
 
+    eh.metadata_dir.mkdir(parents=True, exist_ok=True)
     with open(eh.metadata_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
