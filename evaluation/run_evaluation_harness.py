@@ -81,6 +81,8 @@ class EvaluationHarness:
                 print(f"Error during model evaluation: {e}")
                 
     def _copy_model_results_to_merged_csv(self, path: str, writer: csv.DictWriter, model_name: str) -> None:
+        if not Path(path).exists():
+            return
         with open(path, "r") as f_in:
             reader = csv.DictReader(f_in)
             for row in reader:
