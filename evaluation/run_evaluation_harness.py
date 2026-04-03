@@ -1,6 +1,6 @@
 import collections
 import csv
-from models.perspective_api.model import PerspectiveAPIModel
+from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
 from evaluation.dataloader import DataLoader
 from pathlib import Path
 from lib.testing_utils import print_table
@@ -53,7 +53,7 @@ class EvaluationHarness:
                     pred_label = None
                 else:
                     if model_name == "perspective_api":
-                        pred_label = 1 if prediction.moral_outrage_score > 0.7 else 0
+                        pred_label = 1 if prediction.moral_outrage_score > PROB_LABEL_THRESHOLD else 0
                     else:
                         pred_label = prediction.moral_outrage_score 
 
