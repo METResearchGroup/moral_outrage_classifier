@@ -11,7 +11,7 @@ column_name_conversion = {
 
 class DataLoader:
     def __init__(self, input_path: str, output_path: str, batch_size: int, model_name: str, max_rows: int | float = float('inf')):
-        self.data: list[dict[str, str | int]] = []
+        self.data: list[dict[str, str | int]] = [] # stores the records in RAM after filtering out already processed records
 
         path = Path(input_path)
         if not path.is_file():
@@ -23,9 +23,6 @@ class DataLoader:
 
         model_output_path = Path(output_path)
         self.model_output_path = str(model_output_path.parent / f"{model_output_path.stem}_{model_name}{model_output_path.suffix}")
-
-        # prevent double labeling of texts ie same text appearing multiple times in input file
-        self.texts = set()
 
     # puts all of the id's from output path into a set
     def _return_already_processed_ids(self) -> set[str]:
@@ -43,14 +40,13 @@ class DataLoader:
     def _append_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> None:
         post_id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
         text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
-        if post_id not in already_processed_ids and text not in self.texts:
+        if post_id not in already_processed_ids:
             gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
             try:
                 gold_label = int(gold_label_str) if gold_label_str is not None else None
             except (ValueError, TypeError):
                 gold_label = None
             new_data.append({"text": text, "gold_label": gold_label, "id": post_id})
-            self.texts.add(text)
 
     # use the set of already processed id's to filter out records from input path
     def _return_new_records(self, already_processed_ids: set[str]) -> list[dict[str, str | int]]:
@@ -59,7 +55,7 @@ class DataLoader:
             reader = csv.DictReader(f)
             for row in reader:
                 self._append_new_data(row, already_processed_ids, new_data)
-                if len(self.texts) >= self.max_rows:
+                if len(new_data) >= self.max_rows:
                     break
 
         return new_data
