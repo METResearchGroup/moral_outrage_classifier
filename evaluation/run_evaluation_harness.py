@@ -82,7 +82,22 @@ class EvaluationHarness:
             except Exception as e:
                 print(f"Error during model evaluation: {e}")
                 
-    def _copy_model_results_to_merged_csv(self, path: str, writer: csv.DictWriter, model_name: str) -> None:
+    def _copy_model_results_to_merged_csv(self, path: str, writer: csv.DictWriter) -> None:
+        """
+        Reads from all models' specific csv files and copies all their rows into a final merged csv file.
+
+        We are writing and reading into model-specific csv files in order to avoid RAM issues 
+        that would arise from storing all predictions in RAM before writing to a final csv file.
+        
+        Our algorithm goes through each model sequentially, so it's best to read and write results to individual model csv files.
+        
+        Args:
+            path (str): The file path to the model-specific csv file.
+            writer (csv.DictWriter): A csv.DictWriter object that is already set up to write to the final merged csv file.
+        
+        Returns:
+            None: This function does not return anything, it writes rows to the final merged csv file using the provided writer object.
+        """
         if not Path(path).exists():
             return
         with open(path, "r") as f_in:
@@ -97,7 +112,7 @@ class EvaluationHarness:
                 writer.writeheader()
             for model_name in self.models:
                 path = self._get_model_output_path(model_name)
-                self._copy_model_results_to_merged_csv(path, writer, model_name)
+                self._copy_model_results_to_merged_csv(path, writer)
 
     def _delete_temp_model_csv(self, model_name: str) -> None:
         path = Path(self._get_model_output_path(model_name))
