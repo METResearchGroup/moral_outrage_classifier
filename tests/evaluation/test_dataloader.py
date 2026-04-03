@@ -186,7 +186,7 @@ class TestIter:
         assert len(batches) == 1
         assert len(batches[0]) == 2
 
-    def test_undivisible_data_len(self, input_file_with_three_rows, nonexistent_output_file):
+    def test_indivisible_data_len(self, input_file_with_three_rows, nonexistent_output_file):
         loader = DataLoader(str(input_file_with_three_rows), str(nonexistent_output_file), batch_size=2, model_name="perspective_api")
         loader.load_data()
         batches = list(loader)
