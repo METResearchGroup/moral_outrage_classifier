@@ -22,6 +22,7 @@ class DataLoader:
         self.max_rows = max_rows
 
         model_output_path = Path(output_path)
+        # ex: evaluation/output.csv -> evaluation/output_perspective_api.csv
         self.model_output_path = str(model_output_path.parent / f"{model_output_path.stem}_{model_name}{model_output_path.suffix}")
 
     # puts all of the id's from output path into a set
