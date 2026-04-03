@@ -38,6 +38,13 @@ class DataLoader:
                 pass
         return already_processed_ids
     
+    def _get_field_value(self, field_name: str, row: dict):
+        """Get a value for a specific field in the .csv file.
+           The field can be mapped to the canonical field names using the column_name_conversion dictionary.
+        """ 
+        value = next((row[key] for key in column_name_conversion[field_name] if key in row), None)  
+        return value 
+
     def _append_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> None:
         """
         Appends new data to the list of new_data if the post id is not in the set of already processed ids.
@@ -51,10 +58,10 @@ class DataLoader:
         Returns:
             None: This function does not return anything, it modifies the new_data list in place.
         """
-        post_id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
-        text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
+        post_id = self._get_field_value("id", row)
+        text = self._get_field_value("text", row)
         if post_id not in already_processed_ids:
-            gold_label_str = next((row[key] for key in column_name_conversion["gold_label"] if key in row), None)
+            gold_label_str = self._get_field_value("gold_label", row)
             try:
                 gold_label = int(gold_label_str) if gold_label_str is not None else None
             except (ValueError, TypeError):
