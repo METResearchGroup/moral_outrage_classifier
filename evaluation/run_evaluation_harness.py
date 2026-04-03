@@ -6,6 +6,7 @@ from pathlib import Path
 from lib.testing_utils import print_table
 from schemas.responses import MoralOutrage
 
+FIELDNAMES = ["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"]
 
 MODEL_REGISTRY: dict[str, type] = {
     "perspective_api": PerspectiveAPIModel,
@@ -45,7 +46,7 @@ class EvaluationHarness:
 
     def _write_to_model_csv(self, path: str, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
         with open(path, "a") as f:
-            writer = csv.DictWriter(f, fieldnames=["id", "dataset", "text", "gold_label", "pred_label", "is_correct"])
+            writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
             if f.tell() == 0:
                 writer.writeheader()
             for sample, prediction in zip(batch, predictions, strict=True):
@@ -66,6 +67,7 @@ class EvaluationHarness:
                     "gold_label": sample["gold_label"],
                     "pred_label": pred_label,
                     "is_correct": is_correct,
+                    "model": model_name,
                 })
 
     def _run_model_evaluation(self, model_name: str) -> None:
@@ -86,12 +88,11 @@ class EvaluationHarness:
         with open(path, "r") as f_in:
             reader = csv.DictReader(f_in)
             for row in reader:
-                row["model"] = model_name
                 writer.writerow(row)
 
     def _merge_model_results(self) -> None:
         with open(self.output_path, "a") as f_out:
-            writer = csv.DictWriter(f_out, fieldnames=["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"])
+            writer = csv.DictWriter(f_out, fieldnames=FIELDNAMES)
             if f_out.tell() == 0:
                 writer.writeheader()
             for model_name in self.models:
