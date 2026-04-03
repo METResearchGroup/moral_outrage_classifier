@@ -84,13 +84,8 @@ class EvaluationHarness:
                 
     def _copy_model_results_to_merged_csv(self, path: str, writer: csv.DictWriter) -> None:
         """
-        Reads from all models' specific csv files and copies all their rows into a final merged csv file.
+        Reads from a specific csv file and copies all of its rows into a final merged csv file.
 
-        We are writing and reading into model-specific csv files in order to avoid RAM issues 
-        that would arise from storing all predictions in RAM before writing to a final csv file.
-        
-        Our algorithm goes through each model sequentially, so it's best to read and write results to individual model csv files.
-        
         Args:
             path (str): The file path to the model-specific csv file.
             writer (csv.DictWriter): A csv.DictWriter object that is already set up to write to the final merged csv file.
@@ -106,6 +101,20 @@ class EvaluationHarness:
                 writer.writerow(row)
 
     def _merge_model_results(self) -> None:
+        """
+        Reads from each model-specific csv file and copies all of the rows into a final merged csv file. 
+        
+        We are writing and reading into model-specific csv files in order to avoid RAM issues 
+        that would arise from storing all predictions in RAM before writing to a final csv file.
+        
+        Our algorithm goes through each model sequentially, so it's best to read and write results to individual model csv files.
+        
+        Args:
+            None: This function does not take in any arguments, it uses the instance variable self.models to determine the file names.
+
+        Returns:
+            None: This function does not return anything, it writes rows to the final merged csv file.
+        """
         with open(self.output_path, "a") as f_out:
             writer = csv.DictWriter(f_out, fieldnames=FIELDNAMES)
             if f_out.tell() == 0:
@@ -186,5 +195,3 @@ class EvaluationHarness:
             ["Model", "Accuracy", "Precision", "Recall", "F1", "Total Samples"],
             table_rows
         )
-
-
