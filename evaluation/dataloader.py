@@ -1,4 +1,5 @@
 import csv
+import math
 from pathlib import Path
 from typing import Iterator
 
@@ -104,4 +105,4 @@ class DataLoader:
             yield self.data[i:i + self.batch_size]
 
     def __len__(self) -> int:
-        return len(self.data) // self.batch_size
+        return math.ceil(len(self.data) / self.batch_size)
