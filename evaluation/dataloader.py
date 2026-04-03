@@ -39,6 +39,18 @@ class DataLoader:
         return already_processed_ids
     
     def _append_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> None:
+        """
+        Appends new data to the list of new_data if the post id is not in the set of already processed ids.
+        
+        Args:
+            row (dict[str, str]): A dictionary representing a row from the input CSV file.
+                                  Contains keys that can be mapped to "id", "text", and "gold_label" using the column_name_conversion dictionary.
+            already_processed_ids (set[str]): A set of post ids that have already been processed.
+            new_data (list[dict[str, str | int]]): A list to which new
+
+        Returns:
+            None: This function does not return anything, it modifies the new_data list in place.
+        """
         post_id = next((row[key] for key in column_name_conversion["id"] if key in row), None)
         text = next((row[key] for key in column_name_conversion["text"] if key in row), None)
         if post_id not in already_processed_ids:
