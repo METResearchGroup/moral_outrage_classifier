@@ -45,10 +45,15 @@ class DataLoader:
         """ 
         value = next((row[key] for key in column_name_conversion[field_name] if key in row), None)  
         return value 
+    
+    def _post_already_processed(self, row: dict[str, str], already_processed_ids: set[str]) -> bool:
+        post_id = self._get_field_value("id", row)
+        return post_id in already_processed_ids
 
-    def _append_new_data(self, row: dict[str, str], already_processed_ids: set[str], new_data: list[dict[str, str | int]]) -> None:
+    def _get_new_row_data(self, row: dict[str, str]) -> dict[str, str | int]:
         """
         Appends new data to the list of new_data if the post id is not in the set of already processed ids.
+        Assumes that the row is an unprocessed record. 
         
         Args:
             row (dict[str, str]): A dictionary representing a row from the input CSV file.
@@ -60,14 +65,15 @@ class DataLoader:
             None: This function does not return anything, it modifies the new_data list in place.
         """
         post_id = self._get_field_value("id", row)
-        text = self._get_field_value("text", row)
-        if post_id not in already_processed_ids:
-            gold_label_str = self._get_field_value("gold_label", row)
-            try:
-                gold_label = int(gold_label_str) if gold_label_str is not None else None
-            except (ValueError, TypeError):
-                gold_label = None
-            new_data.append({"text": text, "gold_label": gold_label, "id": post_id})
+        text = self._get_field_value("text", row) 
+        gold_label_str = self._get_field_value("gold_label", row)
+
+        try:
+            gold_label = int(gold_label_str) if gold_label_str is not None else None
+        except (ValueError, TypeError):
+            gold_label = None
+
+        return {"text": text, "gold_label": gold_label, "id": post_id}
 
     def _return_new_records(self, already_processed_ids: set[str]) -> list[dict[str, str | int]]:
         """
@@ -84,7 +90,10 @@ class DataLoader:
         with open(self.input_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                self._append_new_data(row, already_processed_ids, new_data)
+                if self._post_already_processed(row, already_processed_ids):
+                    continue
+
+                new_data.append(self._get_new_row_data(row))
                 if len(new_data) >= self.max_rows:
                     break
 
