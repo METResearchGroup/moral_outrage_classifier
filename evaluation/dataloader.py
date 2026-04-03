@@ -102,3 +102,6 @@ class DataLoader:
     def __iter__(self) -> Iterator[list[dict[str, str | int]]]:
         for i in range(0, len(self.data), self.batch_size):
             yield self.data[i:i + self.batch_size]
+
+    def __len__(self) -> int:
+        return len(self.data) // self.batch_size

@@ -1,5 +1,8 @@
 import collections
 import csv
+
+from tqdm import tqdm
+
 from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
 from evaluation.dataloader import DataLoader
 from pathlib import Path
@@ -73,7 +76,7 @@ class EvaluationHarness:
     def _run_model_evaluation(self, model_name: str) -> None:
         model = MODEL_REGISTRY[model_name]()
         path = self._get_model_output_path(model_name)
-        for batch in self.dataloaders[model_name]:
+        for batch in tqdm(self.dataloaders[model_name], desc=f"Evaluating {model_name}"):
             texts = [sample["text"] for sample in batch]
 
             try:
