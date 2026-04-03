@@ -68,8 +68,17 @@ class DataLoader:
                 gold_label = None
             new_data.append({"text": text, "gold_label": gold_label, "id": post_id})
 
-    # use the set of already processed id's to filter out records from input path
     def _return_new_records(self, already_processed_ids: set[str]) -> list[dict[str, str | int]]:
+        """
+        Uses the set of already processed id's to filter out records from input path
+        
+        Args:
+            already_processed_ids (set[str]): A set of post ids that have already been processed.
+
+        Returns:
+            list[dict[str, str | int]]: A list of dictionaries representing new records that have not been processed yet.
+                                        Each dictionary contains the keys "text", "gold_label", and "id".
+        """
         new_data = []
         with open(self.input_path, "r") as f:
             reader = csv.DictReader(f)
