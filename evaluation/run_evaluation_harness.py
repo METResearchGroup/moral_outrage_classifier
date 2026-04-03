@@ -57,7 +57,7 @@ class EvaluationHarness:
                     else:
                         pred_label = prediction.moral_outrage_score 
 
-                is_correct = int(sample["gold_label"]) == int(pred_label) if pred_label is not None else None
+                is_correct = int(sample["gold_label"]) == int(pred_label) if pred_label is not None and sample["gold_label"] is not None else None
 
                 writer.writerow({
                     "id": sample["id"],
@@ -119,10 +119,10 @@ class EvaluationHarness:
         
         return rows_by_model
 
-    def _calculate_run_metrics(self, rows: list[dict[str, str | int]]) -> tuple[float, float, float, float]:
+    def _calculate_run_metrics(self, rows: list[dict[str, str | int]]) -> tuple[int, float, float, float, float]:
         # csv.DictWfriter writes "" when it wants to write None to a csv file, so need to check for "" when a prediction failed from HttpError
-        total_samples = sum(1 for row in rows if row["pred_label"] != "")
-
+        total_samples = sum(1 for row in rows if row["pred_label"] != "" and row["gold_label"] != "")
+            
         tp = sum(1 for row in rows
                  if row["pred_label"] != ""
                  and row["gold_label"] != ""
