@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from lib.timestamp_utils import get_current_timestamp
 from schemas.responses import MoralOutrage
 
+PROB_LABEL_THRESHOLD=0.7
 
 class PerspectiveAPIModel:
     def __init__(self, api_key: str | None = None) -> None:
