@@ -25,7 +25,7 @@ class PerspectiveAPIModel(BaseModel):
             )
 
     def batch_classify(self, texts: list[str]) -> list[MoralOutrage]:
-        super().batch_classify(texts)  # Validate input
+        self._validate_input(texts)
 
         analyze_requests = [
             {
