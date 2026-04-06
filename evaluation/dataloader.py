@@ -20,12 +20,22 @@ class DataLoader:
         self.input_path = input_path
         self.output_path = output_path
         self.batch_size = batch_size
+        self.input_file_rows = self.count_file_rows(input_path)
         self.max_rows = max_rows
 
         model_output_path = Path(output_path)
         # ex: evaluation/output.csv -> evaluation/output_perspective_api.csv
         self.model_output_path = str(model_output_path.parent / f"{model_output_path.stem}_{model_name}{model_output_path.suffix}")
 
+    @staticmethod
+    def count_file_rows(path: str) -> int:
+        try:
+            with open(path, "r") as f:
+                reader = csv.reader(f)
+                return sum(1 for row in reader) - 1 # subtract 1 for header row
+        except FileNotFoundError:
+            return 0
+        
     # puts all of the id's from output path into a set
     def _return_already_processed_ids(self) -> set[str]:
         already_processed_ids = set()
@@ -95,6 +105,7 @@ class DataLoader:
 
                 new_data.append(self._get_new_row_data(row))
                 if len(new_data) >= self.max_rows:
+                    print(f"Found {self.input_file_rows} rows. Processing first {self.max_rows} new rows...")
                     break
 
         return new_data
