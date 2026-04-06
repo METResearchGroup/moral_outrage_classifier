@@ -80,11 +80,11 @@ class DataLoader:
         Uses the set of already processed id's to filter out records from input path
         
         Args:
-            already_processed_ids (set[str]): A set of post ids that have already been processed.
+            already_processed_ids: A set of post ids that have already been processed.
 
         Returns:
-            list[dict[str, str | int]]: A list of dictionaries representing new records that have not been processed yet.
-                                        Each dictionary contains the keys "text", "gold_label", and "id".
+            A list of dictionaries representing new records that have not been processed yet.
+            Each dictionary contains the keys "text", "gold_label", and "id".
         """
         new_data = []
         with open(self.input_path, "r") as f:
