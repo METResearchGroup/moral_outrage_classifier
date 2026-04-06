@@ -5,11 +5,12 @@ from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
 
 from lib.timestamp_utils import get_current_timestamp
+from models.base import BaseModel
 from schemas.responses import MoralOutrage
 
 PROB_LABEL_THRESHOLD=0.7
 
-class PerspectiveAPIModel:
+class PerspectiveAPIModel(BaseModel):
     def __init__(self, api_key: str | None = None) -> None:
         load_dotenv()
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
@@ -26,6 +27,8 @@ class PerspectiveAPIModel:
             )
 
     def batch_classify(self, texts: list[str]) -> list[MoralOutrage | None]:
+        self._validate_input(texts)
+
         analyze_requests = [
             {
                 'comment': { 'text': text },
