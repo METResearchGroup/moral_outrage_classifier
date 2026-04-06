@@ -125,4 +125,7 @@ class DataLoader:
             yield self.data[i:i + self.batch_size]
 
     def __len__(self) -> int:
+        """
+        Used by tqdm to determine the total number of batches for the progress bar.
+        """
         return math.ceil(len(self.data) / self.batch_size)
