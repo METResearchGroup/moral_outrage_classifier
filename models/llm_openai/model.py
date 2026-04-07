@@ -48,11 +48,11 @@ class OpenAIModel(BaseModel):
             {"role": "user", "content": prompt}
         ]
         response = self.client.responses.create(
-            model="gpt-5.4",
+            model="gpt-5-nano",
             input=input,
             max_output_tokens=300,
         )
-        output = response.output[0]
+        output = response.output[1] # response.output[0] for gpt-5.4
         answer = output.content[0].text
         return answer
 
