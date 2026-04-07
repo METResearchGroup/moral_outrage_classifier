@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+from openai import OpenAI
 
 from models.base import BaseModel
 
@@ -12,27 +13,40 @@ class OpenAIModel(BaseModel):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API Key not found. Pass it to the constructor or set OPENAI_API_KEY environment variable.")
+        self.client = OpenAI(api_key=self.api_key)
 
     def _run_prompt(self, prompt: str) -> str:
-        url = "https://api.openai.com/v1/responses"
-        headers = {
-            "Authorization": f"Bearer {os.getenv("OPENAI_API_KEY")}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": "gpt-4o-mini",
-            "input": [
-                {"role": "system", "content": "You are a concise Python tutor."},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.7,
-            "max_output_tokens": 300,
-        }
+        # url = "https://api.openai.com/v1/responses"
+        # headers = {
+        #     "Authorization": f"Bearer {os.getenv("OPENAI_API_KEY")}",
+        #     "Content-Type": "application/json",
+        # }
+        # payload = {
+        #     "model": "gpt-4o-mini",
+        #     "input": [
+        #         {"role": "system", "content": "You are a concise Python tutor."},
+        #         {"role": "user", "content": prompt},
+        #     ],
+        #     "temperature": 0.7,
+        #     "max_output_tokens": 300,
+        # }
 
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
-        response.raise_for_status()
-        data = response.json()
-        return data["output"][0]["content"][0]["text"]
+        # response = requests.post(url, headers=headers, json=payload, timeout=60)
+        # response.raise_for_status()
+        # data = response.json()
+        # return data["output"][0]["content"][0]["text"]
+        input = [
+            {"role": "user", "content": prompt}
+        ]
+        response = self.client.responses.create(
+            model="gpt-5.4",
+            input=input,
+            max_output_tokens=300,
+        )
+        output = response.output[0]
+        answer = output.content[0].text
+        return answer
+
 
     def batch_classify(self, texts: list[str]) -> list[str]:
         self._validate_input(texts)
