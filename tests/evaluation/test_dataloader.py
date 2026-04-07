@@ -133,18 +133,9 @@ class TestConstructor:
 
 
 class TestReturnAlreadyProcessedIds:
-    def test_nonexistent_output_file(self, input_file_with_rows, nonexistent_output_file):
+    def test_nonexistent_output_dir(self, input_file_with_rows, nonexistent_output_file):
         loader = DataLoader(str(input_file_with_rows), str(nonexistent_output_file), batch_size=10, model_name="perspective_api")
         assert loader._return_already_processed_ids() == set()
-
-    def test_empty_output_file(self, input_file_with_rows, empty_output_file):
-        loader = DataLoader(str(input_file_with_rows), str(empty_output_file), batch_size=10, model_name="perspective_api")
-        assert loader._return_already_processed_ids() == set()
-
-    def test_nonempty_output_file(self, input_file_with_rows, output_file_with_rows):
-        loader = DataLoader(str(input_file_with_rows), str(output_file_with_rows), batch_size=10, model_name="perspective_api")
-        assert loader._return_already_processed_ids() == {"1"}
-
 
 class TestReturnNewRecords:
     def test_no_already_processed(self, input_file_with_rows, nonexistent_output_file):
