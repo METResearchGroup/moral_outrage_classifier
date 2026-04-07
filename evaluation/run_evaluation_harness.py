@@ -24,10 +24,15 @@ class EvaluationHarness:
           output_path: str,
           batch_size: int,
           models: list[str],
+          timestamp: str,
           max_rows: int | float = float("inf"),
     ):
-        self.input_path = input_path
-        self.output_path = output_path
+        self.input_path = Path(input_path)
+        self.output_path = Path(output_path)
+        self.new_output_path = self.output_path / timestamp
+        self.new_output_path.mkdir(parents=True, exist_ok=True)
+        self.new_output_file = self.new_output_path / "output.csv"
+        self.timestamp = timestamp
         self.models = models
         self.dataloaders: dict[str, DataLoader] = {
             model_name: DataLoader(input_path=input_path, output_path=output_path, batch_size=batch_size, model_name=model_name, max_rows=max_rows)
@@ -43,15 +48,13 @@ class EvaluationHarness:
         for dataloader in self.dataloaders.values():
             dataloader.load_data()
 
-    def _get_model_output_path(self, model_name: str) -> str:
-        path = Path(self.output_path)
-        return str(path.parent / f"{path.stem}_{model_name}{path.suffix}")
+    def _get_model_output_path(self, output_path: Path, model_name: str) -> str:
+        return output_path / f"{model_name}.csv"
 
-    def _write_to_model_csv(self, path: str, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
-        with open(path, "a") as f:
+    def _write_to_model_csv(self, path: Path, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
+        with open(path, "w") as f:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-            if f.tell() == 0:
-                writer.writeheader()
+            writer.writeheader()
             for sample, prediction in zip(batch, predictions, strict=True):
                 if prediction is None:
                     pred_label = None
@@ -75,7 +78,7 @@ class EvaluationHarness:
 
     def _run_model_evaluation(self, model_name: str) -> None:
         model = MODEL_REGISTRY[model_name]()
-        path = self._get_model_output_path(model_name)
+        path = self._get_model_output_path(self.new_output_path, model_name)
         for batch in tqdm(self.dataloaders[model_name], desc=f"Evaluating {model_name}"):
             texts = [sample["text"] for sample in batch]
 
@@ -118,16 +121,15 @@ class EvaluationHarness:
         Returns:
             None: This function does not return anything, it writes rows to the final merged csv file.
         """
-        with open(self.output_path, "a") as f_out:
+        with open(self.new_output_file, "w") as f_out:
             writer = csv.DictWriter(f_out, fieldnames=FIELDNAMES)
-            if f_out.tell() == 0:
-                writer.writeheader()
+            writer.writeheader()
             for model_name in self.models:
-                path = self._get_model_output_path(model_name)
+                path = self._get_model_output_path(self.new_output_path, model_name)
                 self._copy_model_results_to_merged_csv(path, writer)
 
     def _delete_temp_model_csv(self, model_name: str) -> None:
-        path = Path(self._get_model_output_path(model_name))
+        path = Path(self._get_model_output_path(self.new_output_path, model_name))
         path.unlink(missing_ok=True)
 
     def run_evaluation(self) -> None:
@@ -141,7 +143,7 @@ class EvaluationHarness:
 
     def _get_rows_by_model_dict(self) -> dict[str, list[dict[str, str | int]]]:
         rows_by_model = collections.defaultdict(list)
-        with open(self.output_path, "r") as f:
+        with open(self.new_output_file, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 model_name = row["model"]

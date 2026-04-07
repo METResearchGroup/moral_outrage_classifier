@@ -1,5 +1,6 @@
 import csv
 import math
+import json
 from pathlib import Path
 from typing import Iterator
 
@@ -11,7 +12,7 @@ column_name_conversion = {
 
 
 class DataLoader:
-    def __init__(self, input_path: str, output_path: str, batch_size: int, model_name: str, max_rows: int | float = float('inf')):
+    def __init__(self, input_path: Path, output_path: Path, batch_size: int, model_name: str, max_rows: int | float = float('inf')):
         self.data: list[dict[str, str | int]] = [] # stores the records in RAM after filtering out already processed records
 
         path = Path(input_path)
@@ -23,10 +24,6 @@ class DataLoader:
         self.input_file_rows = self.count_file_rows(input_path)
         self.max_rows = max_rows
 
-        model_output_path = Path(output_path)
-        # ex: evaluation/output.csv -> evaluation/output_perspective_api.csv
-        self.model_output_path = str(model_output_path.parent / f"{model_output_path.stem}_{model_name}{model_output_path.suffix}")
-
     @staticmethod
     def count_file_rows(path: str) -> int:
         try:
@@ -36,17 +33,43 @@ class DataLoader:
         except FileNotFoundError:
             return 0
         
-    # puts all of the id's from output path into a set
-    def _return_already_processed_ids(self) -> set[str]:
-        already_processed_ids = set()
-        for path in [self.output_path, self.model_output_path]:
+    def _add_already_processed_ids_to_set(self, already_processed_ids: set[str], output_files: list[str]):
+        for output_file in output_files:
             try:
-                with open(path, "r") as f:
+                with open(output_file, "r") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         already_processed_ids.add(row["id"])
             except FileNotFoundError:
-                pass
+                continue
+
+        return already_processed_ids
+
+    def _return_already_processed_ids(self) -> set[str] | None:
+        already_processed_ids = set()
+        base_path = Path(self.output_path)
+
+        # Ensure the directory exists to avoid errors
+        if not base_path.is_dir():
+            return already_processed_ids
+
+        # rglob("*") searches recursively through all subdirectories
+        # We filter for files named "metadata.json"
+        output_files_to_check = []
+        for metadata_file in base_path.rglob("metadata.json"):
+            try:
+                with open(metadata_file, "r") as f:
+                    data = json.load(f)
+                    
+                    if "input_path" in data and data["input_path"] == self.input_path:
+                        output_files_to_check.append(data["output_path"])
+                        
+            except (json.JSONDecodeError, IOError, PermissionError):
+                # Skip files that are empty, corrupted, or locked
+                continue
+        
+        self._add_already_processed_ids_to_set(already_processed_ids, output_files_to_check)
+
         return already_processed_ids
     
     def _get_field_value(self, field_name: str, row: dict):

@@ -28,8 +28,7 @@ def get_run_metadata(input_path, output_path, models, max_rows, batch_size, runt
         "runtime_seconds": round(runtime_seconds, 4),
     }
 
-def write_metadata_dir(input_path, output_path, models, max_rows, batch_size, elapsed):
-    timestamp = get_current_timestamp()
+def write_metadata_dir(input_path, output_path, models, max_rows, batch_size, elapsed, timestamp):
     metadata = get_run_metadata(input_path, output_path, models, max_rows, batch_size, elapsed, timestamp)
 
     metadata_dir = Path(output_path).parent / timestamp
@@ -49,12 +48,16 @@ def main(
     if max_rows == -1: max_rows = float('inf')
 
     EvaluationHarness.validate_models(models)
+
+    timestamp = get_current_timestamp()
+    new_output_path = Path(output_path) / timestamp
     eh = EvaluationHarness(
         input_path=input_path,
         output_path=output_path,
         batch_size=batch_size,
         models=models,
-        max_rows=max_rows
+        timestamp=timestamp,
+        max_rows=max_rows,
     )
 
     print("LOADING DATA")
@@ -68,7 +71,7 @@ def main(
     print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
     eh.display_results()
 
-    write_metadata_dir(input_path, output_path, models, max_rows, batch_size, elapsed)
+    write_metadata_dir(input_path, str(new_output_path), models, max_rows, batch_size, elapsed, timestamp)
 
 
 if __name__ == "__main__":
