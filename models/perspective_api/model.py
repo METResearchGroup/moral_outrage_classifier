@@ -26,7 +26,7 @@ class PerspectiveAPIModel(BaseModel):
             static_discovery=False,
             )
 
-    def batch_classify(self, texts: list[str]) -> list[MoralOutrage]:
+    def batch_classify(self, texts: list[str]) -> list[MoralOutrage | None]:
         self._validate_input(texts)
 
         analyze_requests = [
