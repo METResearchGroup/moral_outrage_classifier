@@ -1,5 +1,6 @@
 import collections
 import csv
+import json
 
 from tqdm import tqdm
 
@@ -132,6 +133,30 @@ class EvaluationHarness:
         path = Path(self._get_model_output_path(self.new_output_path, model_name))
         path.unlink(missing_ok=True)
 
+    def _create_metrics_json(self, rows_by_model: dict[str, list[dict[str, str | int]]]) -> dict:
+        metrics_data = {}
+
+        for model_name, rows in rows_by_model.items():
+            total_samples, accuracy, precision, recall, f1 = self._calculate_run_metrics(rows)
+            metrics_data[model_name] = {
+                "total_samples": total_samples,
+                "accuracy": round(accuracy, 4),
+                "precision": round(precision, 4),
+                "recall": round(recall, 4),
+                "f1_score": round(f1, 4)
+            }
+        return metrics_data
+
+    def _write_metrics_file(self):
+        rows_by_model = self._get_rows_by_model_dict()
+        
+        metrics_json = self._create_metrics_json(rows_by_model)
+
+        # write to file
+        metrics_file = self.new_output_path / "metrics.json"
+        with open(metrics_file, "w") as f:
+            json.dump(metrics_json, f, indent=2)
+
     def run_evaluation(self) -> None:
         for model in self.models:
             self._run_model_evaluation(model)
@@ -140,6 +165,8 @@ class EvaluationHarness:
 
         for model in self.models:
             self._delete_temp_model_csv(model)
+
+        self._write_metrics_file()
 
     def _get_rows_by_model_dict(self) -> dict[str, list[dict[str, str | int]]]:
         rows_by_model = collections.defaultdict(list)
