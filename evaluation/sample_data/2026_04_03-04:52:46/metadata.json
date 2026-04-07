@@ -1,0 +1,14 @@
+{
+  "git_commit_hash": "148799ad2adc4b528dd7f6facddc42ce360a86d1",
+  "timestamp": "2026_04_03-04:52:46",
+  "cli_args": {
+    "input_path": "evaluation/sample_data/26k_training_data.csv",
+    "output_path": "evaluation/sample_data/output.csv",
+    "models": [
+      "perspective_api"
+    ],
+    "max_rows": 50,
+    "batch_size": 10
+  },
+  "runtime_seconds": 26.8683
+}
