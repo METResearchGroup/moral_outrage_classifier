@@ -61,13 +61,14 @@ class DataLoader:
                 with open(metadata_file, "r") as f:
                     data = json.load(f)
                     
-                    if "input_path" in data and data["input_path"] == self.input_path:
-                        output_files_to_check.append(data["output_path"])
+                    cli_args = data.get("cli_args", {})
+                    if cli_args.get("input_path") == str(self.input_path):
+                        output_files_to_check.append(metadata_file.parent / "output.csv")
                         
             except (json.JSONDecodeError, IOError, PermissionError):
                 # Skip files that are empty, corrupted, or locked
                 continue
-        
+        print(output_files_to_check)
         self._add_already_processed_ids_to_set(already_processed_ids, output_files_to_check)
 
         return already_processed_ids
