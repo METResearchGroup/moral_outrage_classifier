@@ -1,12 +1,14 @@
 import os
 from uuid import uuid4
 from googleapiclient import discovery
+from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
 
 from lib.timestamp_utils import get_current_timestamp
 from models.base import BaseModel
 from schemas.responses import MoralOutrage
 
+PROB_LABEL_THRESHOLD=0.7
 
 class PerspectiveAPIModel(BaseModel):
     def __init__(self, api_key: str | None = None) -> None:
@@ -24,7 +26,7 @@ class PerspectiveAPIModel(BaseModel):
             static_discovery=False,
             )
 
-    def batch_classify(self, texts: list[str]) -> list[MoralOutrage]:
+    def batch_classify(self, texts: list[str]) -> list[MoralOutrage | None]:
         self._validate_input(texts)
 
         analyze_requests = [
@@ -35,10 +37,16 @@ class PerspectiveAPIModel(BaseModel):
             for text in texts
         ]
 
-        response = [
-            self.client.comments().analyze(body=analyze_request).execute()
-            for analyze_request in analyze_requests
-        ]
+        responses = []
+        for text, analyze_request in zip(texts, analyze_requests, strict=True):                                                                                      
+            try:                                                                                                                                                     
+                response = self.client.comments().analyze(body=analyze_request).execute()
+                responses.append(response)                                                                                                                           
+            except HttpError as e:
+                if "LANGUAGE_NOT_SUPPORTED_BY_ATTRIBUTE" in str(e):
+                    responses.append(None)
+                else:
+                    raise RuntimeError(f"API error for text '{text[:50]}': {e}") from e  
 
         timestamp = get_current_timestamp()
         try:
@@ -48,8 +56,8 @@ class PerspectiveAPIModel(BaseModel):
                     text=text,
                     moral_outrage_score=resp['attributeScores']['MORAL_OUTRAGE_EXPERIMENTAL']['summaryScore']['value'],
                     label_timestamp=timestamp
-                )
-                for (text, resp) in (zip(texts, response, strict=True))
+                ) if resp is not None else None
+                for (text, resp) in (zip(texts, responses, strict=True))
             ]
         except KeyError as e:
             print(f"Error processing response: {e}")
