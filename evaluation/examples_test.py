@@ -1,4 +1,4 @@
-from evaluation.run_evaluation_harness import EvaluationHarness, calculate_run_metrics
+from evaluation.run_evaluation_harness import EvaluationHarness
 from lib.timestamp_utils import get_current_timestamp
 from pathlib import Path
 
