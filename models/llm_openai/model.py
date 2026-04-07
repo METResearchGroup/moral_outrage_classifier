@@ -1,5 +1,4 @@
 import os
-import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 from uuid import uuid4
@@ -65,7 +64,6 @@ class OpenAIModel(BaseModel):
         timestamp = get_current_timestamp()
         try:
             for inference, text in zip(inference_results, texts, strict=True):
-                print(int(inference))
                 moral_outrage_list.append(MoralOutrage(
                     text_id=str(uuid4()),
                     text=text,
