@@ -49,16 +49,22 @@ class PerspectiveAPIModel(BaseModel):
                     raise RuntimeError(f"API error for text '{text[:50]}': {e}") from e  
 
         timestamp = get_current_timestamp()
+
+        res = []
         try:
-            res = [
-                MoralOutrage(
+            for (text, resp) in (zip(texts, responses, strict=True)):
+                if resp is None:
+                    res.append(None)
+                    continue
+
+                pers_moral_outrage_score = resp['attributeScores']['MORAL_OUTRAGE_EXPERIMENTAL']['summaryScore']['value']
+                moral_outrage_score = 1 if pers_moral_outrage_score > 0.7 else 0
+                res.append(MoralOutrage(
                     text_id=str(uuid4()),
                     text=text,
-                    moral_outrage_score=resp['attributeScores']['MORAL_OUTRAGE_EXPERIMENTAL']['summaryScore']['value'],
+                    moral_outrage_score=moral_outrage_score,
                     label_timestamp=timestamp
-                ) if resp is not None else None
-                for (text, resp) in (zip(texts, responses, strict=True))
-            ]
+                ))
         except KeyError as e:
             print(f"Error processing response: {e}")
             raise
