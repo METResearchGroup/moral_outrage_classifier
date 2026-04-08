@@ -6,7 +6,7 @@ from lib.testing_utils import print_table, evaluate_model_performance, init_mode
 def print_openai_table(results: list[MoralOutrage]) -> None:
     title = "OpenAI Inference Results"
     col_headers = ["Text", "Moral Outrage Score"]
-    rows = [[res.text, f"{res.moral_outrage_score:.4f}"] for res in results]
+    rows = [[res.text, str(res.moral_outrage_score)] for res in results]
     print_table(title, col_headers, rows)
 
 def verify_diff_cases(model: OpenAIModel) -> None:
@@ -39,4 +39,3 @@ if __name__ == "__main__":
     )
 
     print("\n")
-    

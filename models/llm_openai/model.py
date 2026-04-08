@@ -68,7 +68,7 @@ class OpenAIModel(BaseModel):
                     moral_outrage_score=int(inference),
                     label_timestamp=timestamp,
                 ))   
-        except:
-            raise Exception("At least one of the responses did not return either 0 or 1")
+        except ValueError:
+            raise ValueError("At least one of the responses did not return either 0 or 1")
     
         return moral_outrage_list
