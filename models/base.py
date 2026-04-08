@@ -12,5 +12,9 @@ class BaseModel(ABC):
             raise ValueError("All items in the input list must be strings.")
 
     @abstractmethod
-    def batch_classify(self, texts: list[str]) -> list[MoralOutrage | None]:
+    def batch_classify(
+        self, 
+        texts: list[str],
+        text_ids: list[str] | None = None,
+    ) -> list[MoralOutrage | None]:
         pass
