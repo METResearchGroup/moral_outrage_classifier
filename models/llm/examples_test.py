@@ -1,7 +1,10 @@
 """Runnable example for a structured LLM classification request."""
 
+import logging
+
 from pydantic import BaseModel
 
+from lib.decorators import timed
 from models.llm.llm_service import LLMService
 
 example_texts = [
@@ -18,6 +21,7 @@ class MoralOutrage(BaseModel):
     label: int
 
 
+@timed(log_level=logging.INFO)
 def run_batch_example_query(texts: list[str]) -> list[MoralOutrage]:
     """Run a batch of structured classification queries against gpt-5-nano."""
     llm_service = LLMService()
@@ -37,6 +41,7 @@ def run_batch_example_query(texts: list[str]) -> list[MoralOutrage]:
     return results
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     print("Batch example:")
     batch_results = run_batch_example_query(example_texts)
     for text, result in zip(example_texts, batch_results, strict=True):
