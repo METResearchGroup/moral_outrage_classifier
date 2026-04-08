@@ -1,4 +1,9 @@
-"""OpenRouter (MiniMax) smoke-test examples built on shared helpers."""
+"""OpenRouter (MiniMax) smoke-test examples built on shared helpers.
+
+To run:
+
+PYTHONPATH=. uv run python -m models.llm.smoke_tests.minimax_examples
+"""
 
 import logging
 

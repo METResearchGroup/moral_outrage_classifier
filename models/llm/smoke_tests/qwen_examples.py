@@ -1,4 +1,9 @@
-"""OpenRouter (Qwen) smoke-test examples built on shared helpers."""
+"""OpenRouter (Qwen) smoke-test examples built on shared helpers.
+
+To run:
+
+PYTHONPATH=. uv run python -m models.llm.smoke_tests.qwen_examples
+"""
 
 import logging
 
