@@ -15,7 +15,7 @@ class MoralOutrage(BaseModel):
 
 @timed(log_level=logging.INFO)
 def run_batch_example_query(texts: list[str], model: str) -> list[MoralOutrage]:
-    """Run a batch of structured classification queries against gpt-5-nano."""
+    """Run a batch of structured classification queries against a model."""
     llm_service = LLMService()
     prompts = [
         (

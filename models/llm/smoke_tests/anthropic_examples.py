@@ -2,7 +2,8 @@
 
 To run:
 
-PYTHONPATH=. python -m models.llm.smoke_tests.anthropic_examples"""
+PYTHONPATH=. uv run python -m models.llm.smoke_tests.anthropic_examples
+"""
 
 import logging
 
