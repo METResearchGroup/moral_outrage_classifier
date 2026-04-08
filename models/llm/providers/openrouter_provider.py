@@ -38,7 +38,7 @@ class OpenRouterProvider(LLMProviderProtocol):
 
     def initialize(self, api_key: str | None = None) -> None:
         if api_key is None:
-            api_key = EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
+            api_key = EnvVarsContainer.get_env_var("OPENROUTER_API_KEY", required=True)
         if not self._initialized:
             self._api_key = api_key
             self._initialized = True
