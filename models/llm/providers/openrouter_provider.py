@@ -71,6 +71,12 @@ class OpenRouterProvider(LLMProviderProtocol):
             },
         }
 
+    def _supports_native_structured_output(self, model: str) -> bool:
+        """Return whether the model reliably supports native json_schema mode."""
+        return model in {
+            "anthropic/claude-sonnet-4.6",
+        }
+
     def _litellm_model_id(self, public_model_id: str) -> str:
         """Map public config ID (e.g. qwen/qwen3.6-plus) to LiteLLM OpenRouter form."""
         if public_model_id.startswith("openrouter/"):
@@ -98,7 +104,9 @@ class OpenRouterProvider(LLMProviderProtocol):
             **merged_kwargs,
         }
 
-        if response_format is not None:
+        if response_format is not None and self._supports_native_structured_output(
+            model
+        ):
             completion_kwargs["response_format"] = response_format
 
         return completion_kwargs

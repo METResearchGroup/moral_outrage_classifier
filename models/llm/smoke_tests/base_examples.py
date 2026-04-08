@@ -20,7 +20,9 @@ def run_batch_example_query(texts: list[str], model: str) -> list[MoralOutrage]:
     prompts = [
         (
             "You are a moral outrage classifier. "
-            "Return label=1 if the text expresses moral outrage, otherwise label=0. "
+            'Return only valid JSON in the form {"label": 0} or {"label": 1}. '
+            "Do not include any extra text. "
+            "Set label=1 if the text expresses moral outrage, otherwise label=0. "
             f'Classify this text: "{text}"'
         )
         for text in texts
