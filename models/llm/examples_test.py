@@ -4,6 +4,13 @@ from pydantic import BaseModel
 
 from models.llm.llm_service import LLMService
 
+example_texts = [
+    "How dare they let children go hungry while executives collect bonuses.",
+    "I'm so glad I'm not a parent. It's so hard to raise kids these days.",
+    "Why is it always the poor who have to pay for the mistakes of the rich?",
+    "It's not fair that the rich get richer and the poor get poorer.",
+    "The rich are getting richer and the poor are getting poorer.",
+]
 
 class MoralOutrage(BaseModel):
     """Structured response for a simple moral outrage classification."""
@@ -11,34 +18,27 @@ class MoralOutrage(BaseModel):
     label: int
 
 
-def run_example_query() -> MoralOutrage:
-    """Run a simple structured query against gpt-5-nano."""
+def run_batch_example_query(texts: list[str]) -> list[MoralOutrage]:
+    """Run a batch of structured classification queries against gpt-5-nano."""
     llm_service = LLMService()
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a moral outrage classifier. "
-                "Return label=1 if the text expresses moral outrage, otherwise label=0."
-            ),
-        },
-        {
-            "role": "user",
-            "content": (
-                'Classify this text: "How dare they let children go hungry while '
-                'executives collect bonuses."'
-            ),
-        },
+    prompts = [
+        (
+            "You are a moral outrage classifier. "
+            "Return label=1 if the text expresses moral outrage, otherwise label=0. "
+            f'Classify this text: "{text}"'
+        )
+        for text in texts
     ]
-
-    result = llm_service.structured_completion(
-        messages=messages,
+    results: list[MoralOutrage] = llm_service.structured_batch_completion(
+        prompts=prompts,
         response_model=MoralOutrage,
         model="gpt-5-nano",
     )
-    print(result.model_dump_json(indent=2))
-    return result
-
+    return results
 
 if __name__ == "__main__":
-    run_example_query()
+    print("Batch example:")
+    batch_results = run_batch_example_query(example_texts)
+    for text, result in zip(example_texts, batch_results, strict=True):
+        print(f"Text: {text}\tLabel: {result.label}")
+        print("-" * 100)
