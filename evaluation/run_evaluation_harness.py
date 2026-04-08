@@ -4,7 +4,8 @@ import json
 
 from tqdm import tqdm
 
-from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
+from models.perspective_api.model import PerspectiveAPIModel
+from models.llm_openai.model import OpenAIModel
 from evaluation.dataloader import DataLoader
 from pathlib import Path
 from lib.testing_utils import print_table
@@ -14,6 +15,7 @@ FIELDNAMES = ["id", "dataset", "text", "gold_label", "pred_label", "is_correct",
 
 MODEL_REGISTRY: dict[str, type] = {
     "perspective_api": PerspectiveAPIModel,
+    "openai": OpenAIModel,
 }
 
 VALID_MODELS = list(MODEL_REGISTRY.keys())
@@ -53,17 +55,15 @@ class EvaluationHarness:
         return output_path / f"{model_name}.csv"
 
     def _write_to_model_csv(self, path: Path, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
-        with open(path, "w") as f:
+        with open(path, "a") as f:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-            writer.writeheader()
+            if f.tell() == 0:
+                writer.writeheader()
             for sample, prediction in zip(batch, predictions, strict=True):
                 if prediction is None:
                     pred_label = None
                 else:
-                    if model_name == "perspective_api":
-                        pred_label = 1 if prediction.moral_outrage_score > PROB_LABEL_THRESHOLD else 0
-                    else:
-                        pred_label = prediction.moral_outrage_score 
+                    pred_label = prediction.moral_outrage_score 
 
                 is_correct = int(sample["gold_label"]) == int(pred_label) if pred_label is not None and sample["gold_label"] is not None else None
 
