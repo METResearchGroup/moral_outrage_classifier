@@ -58,7 +58,7 @@ class PerspectiveAPIModel(BaseModel):
                     continue
 
                 pers_moral_outrage_score = resp['attributeScores']['MORAL_OUTRAGE_EXPERIMENTAL']['summaryScore']['value']
-                moral_outrage_score = 1 if pers_moral_outrage_score > 0.7 else 0
+                moral_outrage_score = 1 if pers_moral_outrage_score > PROB_LABEL_THRESHOLD else 0
                 res.append(MoralOutrage(
                     text_id=str(uuid4()),
                     text=text,
