@@ -1,0 +1,35 @@
+# Model configurations organized by provider families.
+# Each provider family can have:
+# - llm_inference_kwargs: Default kwargs for all models in this provider
+# - supported_models: Model-specific configurations (llm_inference_kwargs: {} unless overrides needed)
+#
+# Kwarg resolution hierarchy: model-specific -> provider -> default
+# This means if a model has a specific kwarg, it overrides the provider default,
+# which in turn overrides the global default.
+
+models:
+  default:
+    # our default model is gpt-4o-mini.
+    default_model: "gpt-4o-mini"
+    llm_inference_kwargs:
+      temperature: 0.0
+
+  openai:
+    llm_inference_kwargs:
+      temperature: 0.0
+    supported_models:
+      "gpt-4o-mini":
+        llm_inference_kwargs: {}
+      "gpt-4o-mini-2024-07-18":
+        llm_inference_kwargs: {}
+      "gpt-4":
+        llm_inference_kwargs: {}
+      "gpt-5-nano":
+        llm_inference_kwargs: {
+          # From LiteLLM error message:
+          # gpt-5 models (including gpt-5-codex) don't support temperature=0.0.
+          # Only temperature=1 is supported. For gpt-5.1, temperature is
+          # supported when reasoning_effort='none' (or not specified, as it
+          #defaults to 'none').
+          temperature: 1
+        }
