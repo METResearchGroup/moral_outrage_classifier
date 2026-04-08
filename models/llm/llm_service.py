@@ -387,6 +387,13 @@ class LLMService:
         """
         contents = []
         for response in responses:
+            if not hasattr(response, "choices"):
+                if isinstance(response, Exception):
+                    raise standardize_litellm_exception(response)
+                raise ValueError(
+                    "Batch completion returned a non-response item. "
+                    f"Expected LiteLLM response object, got {type(response).__name__}."
+                )
             content: str | None = response.choices[0].message.content  # type: ignore
             if content is None:
                 raise ValueError(
