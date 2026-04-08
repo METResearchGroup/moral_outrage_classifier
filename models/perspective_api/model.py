@@ -1,5 +1,4 @@
 import os
-from uuid import uuid4
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
@@ -26,7 +25,7 @@ class PerspectiveAPIModel(BaseModel):
             static_discovery=False,
             )
 
-    def batch_classify(self, texts: list[str]) -> list[MoralOutrage | None]:
+    def batch_classify(self, texts: list[str], text_ids: list[str] | None = None) -> list[MoralOutrage | None]:
         self._validate_input(texts)
 
         analyze_requests = [
@@ -52,12 +51,12 @@ class PerspectiveAPIModel(BaseModel):
         try:
             res = [
                 MoralOutrage(
-                    text_id=str(uuid4()),
+                    text_id=text_id,
                     text=text,
                     moral_outrage_score=resp['attributeScores']['MORAL_OUTRAGE_EXPERIMENTAL']['summaryScore']['value'],
                     label_timestamp=timestamp
                 ) if resp is not None else None
-                for (text, resp) in (zip(texts, responses, strict=True))
+                for (text, text_id, resp) in (zip(texts, text_ids, responses, strict=True))
             ]
         except KeyError as e:
             print(f"Error processing response: {e}")
