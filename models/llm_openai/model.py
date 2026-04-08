@@ -7,11 +7,11 @@ from models.base import BaseModel
 from schemas.responses import MoralOutrage
 from lib.timestamp_utils import get_current_timestamp
 
-load_dotenv(override=True)
 
 class OpenAIModel(BaseModel):
 
     def __init__(self, api_key: str | None = None) -> None:
+        load_dotenv()
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API Key not found. Pass it to the constructor or set OPENAI_API_KEY environment variable.")
@@ -44,17 +44,15 @@ class OpenAIModel(BaseModel):
         Answer:
         """
 
-        input = [
+        request_input = [
             {"role": "user", "content": prompt}
         ]
         response = self.client.responses.create(
             model="gpt-5-nano",
-            input=input,
+            input=request_input,
             max_output_tokens=300,
         )
-        output = response.output[1] # response.output[0] for gpt-5.4
-        answer = output.content[0].text
-        return answer
+        return response.output_text.strip()
 
 
     def batch_classify(self, texts: list[str]) -> list[MoralOutrage]:
