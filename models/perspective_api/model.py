@@ -26,8 +26,8 @@ class PerspectiveAPIModel(BaseModel):
             )
 
     def batch_classify(self, texts: list[str], text_ids: list[str] | None = None) -> list[MoralOutrage | None]:
-        self._validate_input(texts)
-        text_ids = self._validate_text_ids(text_ids, len(texts))
+        self._validate_input(texts, text_ids, len(texts))
+        text_ids = self._get_valid_text_ids_if_not_exists(text_ids, len(texts))
 
         analyze_requests = [
             {
