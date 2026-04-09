@@ -13,10 +13,12 @@ class BaseModel(ABC):
             raise ValueError("All items in the input list must be strings.")
 
     @staticmethod
-    def _validate_text_ids(text_ids: list[str] | None, num_rows) -> list[str]:
+    def _validate_text_ids(text_ids: list[str] | None, num_rows: int) -> list[str]:
         if text_ids is not None:
+            if len(text_ids) != num_rows:
+                raise ValueError(f"text_ids length ({len(text_ids)}) must match number of texts ({num_rows}).")
             return text_ids
-        return [str(uuid4()) for i in range(num_rows)]
+        return [str(uuid4()) for _ in range(num_rows)]
 
     @abstractmethod
     def batch_classify(
