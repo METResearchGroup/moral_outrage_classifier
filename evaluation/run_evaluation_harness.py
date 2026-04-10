@@ -82,9 +82,10 @@ class EvaluationHarness:
         path = self._get_model_output_path(self.new_output_path, model_name)
         for batch in tqdm(self.dataloaders[model_name], desc=f"Evaluating {model_name}"):
             texts = [sample["text"] for sample in batch]
+            text_ids = [sample["id"] for sample in batch]
 
             try:
-                predictions = model.batch_classify(texts)
+                predictions = model.batch_classify(texts, text_ids)
                 self._write_to_model_csv(path, model_name, batch, predictions)
             except Exception as e:
                 print(f"Error during model evaluation: {e}")
