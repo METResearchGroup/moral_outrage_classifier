@@ -2,8 +2,10 @@ import collections
 import csv
 import json
 
+from tenacity import retry, stop_after_attempt, wait_fixed
 from tqdm import tqdm
 
+from models.base import BaseModel
 from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
 from evaluation.dataloader import DataLoader
 from pathlib import Path
@@ -16,7 +18,11 @@ MODEL_REGISTRY: dict[str, type] = {
     "perspective_api": PerspectiveAPIModel,
 }
 
+RETRIES = 3
+
 VALID_MODELS = list(MODEL_REGISTRY.keys())
+
+RETRY_WAIT_TIME = 2
 
 class EvaluationHarness:
     def __init__(
@@ -49,8 +55,11 @@ class EvaluationHarness:
         for dataloader in self.dataloaders.values():
             dataloader.load_data()
 
-    def _get_model_output_path(self, output_path: Path, model_name: str) -> str:
+    def _get_model_output_path(self, output_path: Path, model_name: str) -> Path:
         return output_path / f"{model_name}.csv"
+    
+    def _get_deadletter_path(self, output_path: Path) -> Path:
+        return output_path / "deadletter.csv"
 
     def _write_to_model_csv(self, path: Path, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
         with open(path, "w") as f:
@@ -76,6 +85,33 @@ class EvaluationHarness:
                     "is_correct": is_correct,
                     "model": model_name,
                 })
+    
+    @retry(stop=stop_after_attempt(RETRIES), wait=wait_fixed(RETRY_WAIT_TIME))
+    def _process_batch(
+        self, 
+        texts: list[str], 
+        path: Path, 
+        model: BaseModel, 
+        model_name: str, 
+        batch: list[dict[str, str | int]],
+    ) -> None:
+        predictions = model.batch_classify(texts)
+        self._write_to_model_csv(path, model_name, batch, predictions)
+
+    def _write_to_deadletter_csv(self, path, model_name, batch):
+        deadletter_file = self._get_deadletter_path(path)
+
+        with open(deadletter_file, "a") as f:
+            writer = csv.DictWriter(f, fieldnames=["id", "text", "model"])
+            if f.tell() == 0:
+                writer.writeheader()
+            
+            for sample in batch:
+                writer.writerow({
+                    "id": sample.get("id", "NO ID FOUND"),
+                    "text": sample.get("text", "NO TEXT FOUND"),
+                    "model": model_name
+                })
 
     def _run_model_evaluation(self, model_name: str) -> None:
         model = MODEL_REGISTRY[model_name]()
@@ -84,9 +120,10 @@ class EvaluationHarness:
             texts = [sample["text"] for sample in batch]
 
             try:
-                predictions = model.batch_classify(texts)
-                self._write_to_model_csv(path, model_name, batch, predictions)
+                self._process_batch(texts, path, model, model_name, batch)
+
             except Exception as e:
+                self._write_to_deadletter_csv(self.new_output_path, model_name, batch)
                 print(f"Error during model evaluation: {e}")
                 
     def _copy_model_results_to_merged_csv(self, path: str, writer: csv.DictWriter) -> None:
