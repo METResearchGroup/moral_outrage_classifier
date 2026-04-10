@@ -1,5 +1,6 @@
 import csv
 import pytest
+from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -21,10 +22,15 @@ def mock_model() -> MagicMock:
     return mm
 
 
+@pytest.fixture(autouse=True)
+def patch_model_registry(mock_model: MagicMock) -> Iterator[None]:
+    with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}):
+        yield
+
+
 @pytest.fixture
 def harness(tmp_path: Path) -> EvaluationHarness:
-    with patch("evaluation.run_evaluation_harness.DataLoader"), \
-         patch.dict("os.environ", {"GOOGLE_API_KEY": "fake_key_for_testing"}):
+    with patch("evaluation.run_evaluation_harness.DataLoader"):
         h = EvaluationHarness(
             input_path="unused",
             output_path=str(tmp_path / "output"),
@@ -70,9 +76,8 @@ class TestDeadletter:
         assert rows[0]["id"] == "1"
         assert rows[1]["id"] == "2"
 
-    def test_no_deadletter_on_success(self, harness: EvaluationHarness, mock_model: MagicMock) -> None:
-        with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}):
-            harness._run_model_evaluation("perspective_api")
+    def test_no_deadletter_on_success(self, harness: EvaluationHarness) -> None:
+        harness._run_model_evaluation("perspective_api")
 
         assert not (harness.new_output_path / "deadletter.csv").exists()
 
@@ -81,8 +86,7 @@ class TestRetries:
     def test_retries_exhausted_before_deadletter(self, harness: EvaluationHarness, mock_model: MagicMock) -> None:
         mock_model.batch_classify.side_effect = Exception("transient error")
 
-        with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}), \
-             patch("time.sleep"):  # suppress tenacity wait between retries
+        with patch("time.sleep"):  # suppress tenacity wait between retries
             harness._run_model_evaluation("perspective_api")
 
         assert mock_model.batch_classify.call_count == RETRIES
@@ -94,8 +98,7 @@ class TestRetries:
             mock_model.batch_classify.return_value,
         ]
 
-        with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}), \
-             patch("time.sleep"):
+        with patch("time.sleep"):
             harness._run_model_evaluation("perspective_api")
 
         assert mock_model.batch_classify.call_count == 2
