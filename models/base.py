@@ -11,7 +11,7 @@ class BaseModel(ABC):
             raise ValueError("Input must be a list of strings.")
         if not all(isinstance(text, str) for text in texts):
             raise ValueError("All items in the input list must be strings.")
-        if text_ids and len(text_ids) != num_rows:
+        if text_ids is not None and len(text_ids) != num_rows:
             raise ValueError(f"text_ids length ({len(text_ids)}) must match number of texts ({num_rows}).")
 
     @staticmethod
