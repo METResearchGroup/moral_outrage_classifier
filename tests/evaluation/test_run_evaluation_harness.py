@@ -12,9 +12,19 @@ FAKE_BATCH: list[dict[str, str]] = [
 
 
 @pytest.fixture
-def harness(tmp_path: Path, mock_model: MagicMock) -> EvaluationHarness:
+def mock_model() -> MagicMock:
+    mm = MagicMock()
+    mm.batch_classify.return_value = [
+        MagicMock(moral_outrage_score=0.8),
+        MagicMock(moral_outrage_score=0.2),
+    ]
+    return mm
+
+
+@pytest.fixture
+def harness(tmp_path: Path) -> EvaluationHarness:
     with patch("evaluation.run_evaluation_harness.DataLoader"), \
-         patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}):
+         patch.dict("os.environ", {"GOOGLE_API_KEY": "fake_key_for_testing"}):
         h = EvaluationHarness(
             input_path="unused",
             output_path=str(tmp_path / "output"),
@@ -25,16 +35,6 @@ def harness(tmp_path: Path, mock_model: MagicMock) -> EvaluationHarness:
 
     h.dataloaders["perspective_api"] = [FAKE_BATCH]  # type: ignore[assignment]
     return h
-
-
-@pytest.fixture
-def mock_model() -> MagicMock:
-    mm = MagicMock()
-    mm.batch_classify.return_value = [
-        MagicMock(moral_outrage_score=0.8),
-        MagicMock(moral_outrage_score=0.2),
-    ]
-    return mm
 
 
 def read_deadletter(harness: EvaluationHarness) -> list[dict[str, str]]:
@@ -60,13 +60,13 @@ class TestDeadletter:
     def test_deadletter_appends_across_multiple_failed_batches(self, harness: EvaluationHarness) -> None:
         batch1: list[dict[str, str]] = [{"id": "1", "text": "a", "gold_label": "1"}]
         batch2: list[dict[str, str]] = [{"id": "2", "text": "b", "gold_label": "0"}]
-        harness.dataloaders["perspective_api"] = [batch1, batch2]  
+        harness.dataloaders["perspective_api"] = [batch1, batch2]  # type: ignore[assignment]
 
         with patch.object(harness, "_process_batch", side_effect=Exception("fail")):
             harness._run_model_evaluation("perspective_api")
 
         rows = read_deadletter(harness)
-        assert len(rows) == 2 
+        assert len(rows) == 2
         assert rows[0]["id"] == "1"
         assert rows[1]["id"] == "2"
 
@@ -82,21 +82,20 @@ class TestRetries:
         mock_model.batch_classify.side_effect = Exception("transient error")
 
         with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}), \
-            patch("time.sleep"):  # suppress tenacity wait between retries
+             patch("time.sleep"):  # suppress tenacity wait between retries
             harness._run_model_evaluation("perspective_api")
 
         assert mock_model.batch_classify.call_count == RETRIES
         assert (harness.new_output_path / "deadletter.csv").exists()
 
     def test_no_deadletter_if_retry_succeeds(self, harness: EvaluationHarness, mock_model: MagicMock) -> None:
-        # Fails on first attempt, succeeds on retry
         mock_model.batch_classify.side_effect = [
             Exception("transient"),
             mock_model.batch_classify.return_value,
         ]
 
         with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}), \
-            patch("time.sleep"):
+             patch("time.sleep"):
             harness._run_model_evaluation("perspective_api")
 
         assert mock_model.batch_classify.call_count == 2
