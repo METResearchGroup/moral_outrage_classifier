@@ -12,8 +12,9 @@ FAKE_BATCH: list[dict[str, str]] = [
 
 
 @pytest.fixture
-def harness(tmp_path: Path) -> EvaluationHarness:
-    with patch("evaluation.run_evaluation_harness.DataLoader"):
+def harness(tmp_path: Path, mock_model: MagicMock) -> EvaluationHarness:
+    with patch("evaluation.run_evaluation_harness.DataLoader"), \
+         patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}):
         h = EvaluationHarness(
             input_path="unused",
             output_path=str(tmp_path / "output"),
@@ -22,7 +23,7 @@ def harness(tmp_path: Path) -> EvaluationHarness:
             timestamp="test_run",
         )
 
-    h.dataloaders["perspective_api"] = [FAKE_BATCH]
+    h.dataloaders["perspective_api"] = [FAKE_BATCH]  # type: ignore[assignment]
     return h
 
 
