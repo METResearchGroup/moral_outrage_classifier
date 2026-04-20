@@ -5,7 +5,7 @@ import pytest
 
 from evaluation.dataloader import DataLoader
 from evaluation.metadata import get_model_id_value
-from models.llm.models import OpenAIModel
+from models.llm.models import AnthropicModel, OpenAIModel
 
 
 # Input file fixtures
@@ -197,6 +197,13 @@ class TestGetUniqueModelRunIdentifier:
         resolved_id, prompt_hash = loader.get_unique_model_run_identifier()
         assert resolved_id == get_model_id_value("openai")
         assert prompt_hash == OpenAIModel.get_prompt_hash()
+
+    def test_anthropic_returns_resolved_id_and_prompt_hash(self, input_file_with_rows, tmp_path):
+        loader = DataLoader(str(input_file_with_rows), str(tmp_path), batch_size=10, model_name="anthropic")
+        resolved_id, prompt_hash = loader.get_unique_model_run_identifier()
+        assert resolved_id == get_model_id_value("anthropic")
+        assert resolved_id == AnthropicModel.get_resolved_model_id()
+        assert prompt_hash == AnthropicModel.get_prompt_hash()
 
     def test_perspective_returns_alias_and_no_prompt_hash(self, input_file_with_rows, tmp_path):
         loader = DataLoader(str(input_file_with_rows), str(tmp_path), batch_size=10, model_name="perspective_api")

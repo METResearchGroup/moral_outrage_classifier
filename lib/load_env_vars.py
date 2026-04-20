@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 
 ENV_VAR_TYPES: Final[dict[str, type[str]]] = {
     "OPENAI_API_KEY": str,
+    "ANTHROPIC_API_KEY": str,
     "OPENROUTER_API_KEY": str,
     "BLUESKY_HANDLE": str,
     "BLUESKY_PASSWORD": str,

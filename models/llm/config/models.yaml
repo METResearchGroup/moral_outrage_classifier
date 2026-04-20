@@ -43,6 +43,13 @@ models:
           temperature: 1
         }
 
+  anthropic:
+    llm_inference_kwargs:
+      temperature: 0.0
+    supported_models:
+      "anthropic/claude-sonnet-4-6":
+        llm_inference_kwargs: {}
+
   openrouter:
     llm_inference_kwargs:
       temperature: 0.0
@@ -50,6 +57,4 @@ models:
       "qwen/qwen3.6-plus":
         llm_inference_kwargs: {}
       "minimax/minimax-m2.5":
-        llm_inference_kwargs: {}
-      "anthropic/claude-sonnet-4.6":
         llm_inference_kwargs: {}
