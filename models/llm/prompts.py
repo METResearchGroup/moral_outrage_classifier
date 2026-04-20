@@ -21,6 +21,12 @@ in his city.
 
 You must return an output in the following JSON format: {"label": 0} or {"label": 1}.
 
+Return JSON only:
+- If the post describes, reports, or implies moral outrage: {"label": 1}
+- Otherwise: {"label": 0}
+
+Do not return plain text, explanations, or extra keys.
+
 Example:
 
 Post: "How dare they let children go hungry while executives collect bonuses."
