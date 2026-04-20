@@ -1,14 +1,35 @@
 import csv
-import math
 import json
+import math
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator
+
+from evaluation.metadata import get_model_id_value
+from evaluation.model_registry import MODEL_REGISTRY
+from models.llm.models import BaseHarnessLLMModel
 
 column_name_conversion = {
     "id": ["id", "tweet_id"],
     "text": ["text", "body"],
     "gold_label": ["gold_label", "outrage", "pers_outrage_label"],
 }
+
+
+def _normalize_prompt_hash(value: Any) -> str | None:
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
+def _metadata_model_entry_matches(
+    entry: dict[str, Any],
+    resolved_model_id: str,
+    prompt_hash: str | None,
+) -> bool:
+    """True if this prior-run metadata row describes the same eval universe as (resolved_model_id, prompt_hash)."""
+    if entry.get("resolved_model_id") != resolved_model_id:
+        return False
+    return _normalize_prompt_hash(entry.get("prompt_hash")) == _normalize_prompt_hash(prompt_hash)
 
 
 class DataLoader:
@@ -21,6 +42,7 @@ class DataLoader:
         self.input_path = input_path
         self.output_path = output_path
         self.batch_size = batch_size
+        self.model_name = model_name
         self.input_file_rows = self.count_file_rows(input_path)
         self.max_rows = max_rows
 
@@ -33,43 +55,101 @@ class DataLoader:
         except FileNotFoundError:
             return 0
         
-    def _add_already_processed_ids_to_set(self, already_processed_ids: set[str], output_files: list[str]):
+    def get_unique_model_run_identifier(self) -> tuple[str, str | None]:
+        """Get the unique model run identifiers for the current model.
+        For LLM models, this is (resolved_model_id, prompt_hash).
+        For Perspective API, this is (model_name, None).
+        """
+        model_cls = MODEL_REGISTRY[self.model_name]
+        if issubclass(model_cls, BaseHarnessLLMModel):
+            return (model_cls.get_resolved_model_id(), model_cls.get_prompt_hash())
+        return (self.model_name, None)
+
+    def _add_already_processed_ids_to_set(
+        self,
+        already_processed_ids: set[str],
+        output_files: list[Path],
+        model_id: str,
+    ) -> set[str]:
         for output_file in output_files:
             try:
                 with open(output_file, "r") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
-                        already_processed_ids.add(row["id"])
+                        if row.get("model") != model_id:
+                            continue
+                        post_id = row.get("id")
+                        if post_id is not None:
+                            already_processed_ids.add(post_id)
             except FileNotFoundError:
                 continue
 
         return already_processed_ids
 
-    def _return_already_processed_ids(self) -> set[str] | None:
-        already_processed_ids = set()
+    # TODO: change name.
+    def _load_metadata_files_from_past_duplicate_runs(
+        self, resolved_model_id: str, prompt_hash: str | None
+    ) -> list[Path]:
+        """Check to see which files, if any, may have already processed records
+        using the same input file + model + prompt as the current run. This helps
+        us avoid deduplicating labeling records that were already processed by a
+        prior run.
+        """
+        base_path = Path(self.output_path)
+        output_files_to_check: list[Path] = []
+        for metadata_file in base_path.rglob("metadata.json"):
+            try:
+                with open(metadata_file, "r") as f:
+                    data = json.load(f)
+
+                    # Check 1: Check if the prior run uses the same input file
+                    # as the current run. If not, then we don't check that run's
+                    # processed records for the purposes of deduplication (since
+                    # it obviously uses a different input file).
+                    cli_args = data.get("cli_args", {})
+                    if cli_args.get("input_path") != str(self.input_path):
+                        continue
+
+                    # Check 2: Check to see if we can tell what models were used
+                    # in a prior run. If not, then we can't know if that run
+                    # is relevant to the current run for the purposes of deduplication
+                    # (since we don't know which models were used).
+                    models_meta = data.get("models")
+                    if not isinstance(models_meta, list):
+                        continue
+
+                    # Check 3: Check to see if that run used any of the same model +
+                    # prompt combinations as the current run. If not, then we don't
+                    # check that run's processed records for the purposes of deduplication
+                    # (since it uses a different model + prompt combination than
+                    # the one that we care about).
+                    if not any(
+                        isinstance(m, dict)
+                        and _metadata_model_entry_matches(m, resolved_model_id, prompt_hash)
+                        for m in models_meta
+                    ):
+                        continue
+
+                    output_files_to_check.append(metadata_file.parent / "output.csv")
+
+            except (json.JSONDecodeError, IOError, PermissionError):
+                # Skip files that are empty, corrupted, or locked
+                continue
+
+        return output_files_to_check
+
+    def _return_already_processed_ids(self) -> set[str]:
+        already_processed_ids: set[str] = set()
         base_path = Path(self.output_path)
 
         # Ensure the directory exists to avoid errors
         if not base_path.is_dir():
             return already_processed_ids
 
-        # rglob("*") searches recursively through all subdirectories
-        # We filter for files named "metadata.json"
-        output_files_to_check = []
-        for metadata_file in base_path.rglob("metadata.json"):
-            try:
-                with open(metadata_file, "r") as f:
-                    data = json.load(f)
-                    
-                    cli_args = data.get("cli_args", {})
-                    if cli_args.get("input_path") == str(self.input_path):
-                        output_files_to_check.append(metadata_file.parent / "output.csv")
-                        
-            except (json.JSONDecodeError, IOError, PermissionError):
-                # Skip files that are empty, corrupted, or locked
-                continue
-        print(output_files_to_check)
-        self._add_already_processed_ids_to_set(already_processed_ids, output_files_to_check)
+        resolved_model_id, prompt_hash = self.get_unique_model_run_identifier()
+        model_id = get_model_id_value(self.model_name)
+        output_files_to_check = self._load_metadata_files_from_past_duplicate_runs(resolved_model_id, prompt_hash)
+        self._add_already_processed_ids_to_set(already_processed_ids, output_files_to_check, model_id)
 
         return already_processed_ids
     

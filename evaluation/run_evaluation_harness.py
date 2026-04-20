@@ -2,72 +2,16 @@ import collections
 import csv
 import json
 from pathlib import Path
-from typing import Any
-
 from tqdm import tqdm
 
 from evaluation.dataloader import DataLoader
+from evaluation.metadata import get_model_id_value
+from evaluation.model_registry import MODEL_REGISTRY, VALID_MODELS
 from lib.testing_utils import print_table
-from models.base import BaseModel as ClassifierBaseModel
-from models.llm.models import (
-    AnthropicModel,
-    BaseHarnessLLMModel,
-    MiniMaxModel,
-    OpenAIModel,
-    QwenModel,
-)
-from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
+from models.perspective_api.model import PROB_LABEL_THRESHOLD
 from schemas.responses import MoralOutrage
 
 FIELDNAMES = ["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"]
-
-MODEL_REGISTRY: dict[str, type[ClassifierBaseModel]] = {
-    "perspective_api": PerspectiveAPIModel,
-    "openai": OpenAIModel,
-    "qwen": QwenModel,
-    "anthropic": AnthropicModel,
-    "minimax": MiniMaxModel,
-}
-
-VALID_MODELS = list(MODEL_REGISTRY.keys())
-
-
-def build_models_metadata_entries(requested_models: list[str]) -> list[dict[str, Any]]:
-    """Build `metadata.json` `models` entries: llm_provider_name, resolved id, prompt fields (null for Perspective)."""
-    entries: list[dict[str, Any]] = []
-    for alias in requested_models:
-        model_cls = MODEL_REGISTRY[alias]
-        if issubclass(model_cls, BaseHarnessLLMModel):
-            entries.append(
-                {
-                    "llm_provider_name": model_cls.get_requested_alias(),
-                    "resolved_model_id": model_cls.get_resolved_model_id(),
-                    "prompt_hash": model_cls.get_prompt_hash(),
-                    "prompt_template": model_cls.get_prompt_template(),
-                }
-            )
-        else:
-            # Perspective API
-            entries.append(
-                {
-                    "llm_provider_name": alias,
-                    "resolved_model_id": alias,
-                    "prompt_hash": None,
-                    "prompt_template": None,
-                }
-            )
-    return entries
-
-
-def _csv_model_column_value(model_name: str) -> str:
-    """Export-friendly model name. Uses the LLM provider or the 'Perspective API'
-    name."""
-    model_cls = MODEL_REGISTRY[model_name]
-    if issubclass(model_cls, BaseHarnessLLMModel):
-        return model_cls.get_resolved_model_id()
-    else:
-        # only applies to the Perspective API, so we just return the model name directly.
-        return model_name
 
 
 class EvaluationHarness:
@@ -113,7 +57,7 @@ class EvaluationHarness:
     ) -> None:
         append = path.exists() and path.stat().st_size > 0
         mode = "a" if append else "w"
-        csv_model = _csv_model_column_value(model_name)
+        csv_model = get_model_id_value(model_name)
         with open(path, mode, newline="") as f:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
             if not append:
