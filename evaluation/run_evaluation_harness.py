@@ -1,22 +1,18 @@
 import collections
 import csv
 import json
-
+from pathlib import Path
 from tqdm import tqdm
 
-from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
 from evaluation.dataloader import DataLoader
-from pathlib import Path
+from evaluation.metadata import get_model_id_value
+from evaluation.model_registry import MODEL_REGISTRY, VALID_MODELS
 from lib.testing_utils import print_table
+from models.perspective_api.model import PROB_LABEL_THRESHOLD
 from schemas.responses import MoralOutrage
 
 FIELDNAMES = ["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"]
 
-MODEL_REGISTRY: dict[str, type] = {
-    "perspective_api": PerspectiveAPIModel,
-}
-
-VALID_MODELS = list(MODEL_REGISTRY.keys())
 
 class EvaluationHarness:
     def __init__(
@@ -52,10 +48,20 @@ class EvaluationHarness:
     def _get_model_output_path(self, output_path: Path, model_name: str) -> str:
         return output_path / f"{model_name}.csv"
 
-    def _write_to_model_csv(self, path: Path, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
-        with open(path, "w") as f:
+    def _write_to_model_csv(
+        self,
+        path: Path,
+        model_name: str,
+        batch: list[dict[str, str | int]],
+        predictions: list[MoralOutrage | None],
+    ) -> None:
+        append = path.exists() and path.stat().st_size > 0
+        mode = "a" if append else "w"
+        csv_model = get_model_id_value(model_name)
+        with open(path, mode, newline="") as f:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-            writer.writeheader()
+            if not append:
+                writer.writeheader()
             for sample, prediction in zip(batch, predictions, strict=True):
                 if prediction is None:
                     pred_label = None
@@ -63,19 +69,25 @@ class EvaluationHarness:
                     if model_name == "perspective_api":
                         pred_label = 1 if prediction.moral_outrage_score > PROB_LABEL_THRESHOLD else 0
                     else:
-                        pred_label = prediction.moral_outrage_score 
+                        pred_label = int(prediction.moral_outrage_score)
 
-                is_correct = int(sample["gold_label"]) == int(pred_label) if pred_label is not None and sample["gold_label"] is not None else None
+                is_correct = (
+                    int(sample["gold_label"]) == int(pred_label)
+                    if pred_label is not None and sample["gold_label"] is not None
+                    else None
+                )
 
-                writer.writerow({
-                    "id": sample["id"],
-                    "dataset": self.input_path,
-                    "text": sample["text"],
-                    "gold_label": sample["gold_label"],
-                    "pred_label": pred_label,
-                    "is_correct": is_correct,
-                    "model": model_name,
-                })
+                writer.writerow(
+                    {
+                        "id": sample["id"],
+                        "dataset": self.input_path,
+                        "text": sample["text"],
+                        "gold_label": sample["gold_label"],
+                        "pred_label": pred_label,
+                        "is_correct": is_correct,
+                        "model": csv_model,
+                    }
+                )
 
     def _run_model_evaluation(self, model_name: str) -> None:
         model = MODEL_REGISTRY[model_name]()
