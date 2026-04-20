@@ -1,4 +1,4 @@
-"""OpenRouter (Anthropic) smoke-test examples built on shared helpers.
+"""Direct Anthropic smoke-test examples built on shared helpers.
 
 To run:
 
@@ -22,7 +22,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     print("Batch example:")
     batch_results = run_batch_example_query(
-        EXAMPLE_TEXTS, model="anthropic/claude-sonnet-4.6"
+        EXAMPLE_TEXTS, model="anthropic/claude-sonnet-4-6"
     )
     for text, result in zip(EXAMPLE_TEXTS, batch_results, strict=True):
         print(f"Text: {text}\tLabel: {result.label}")

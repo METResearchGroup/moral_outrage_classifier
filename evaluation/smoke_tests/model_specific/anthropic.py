@@ -1,4 +1,4 @@
-"""Smoke entrypoint: evaluation harness with Anthropic alias (OpenRouter).
+"""Smoke entrypoint: evaluation harness with Anthropic alias (direct Anthropic API).
 
 To run:
 ```bash
