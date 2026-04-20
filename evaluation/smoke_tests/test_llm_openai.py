@@ -9,6 +9,11 @@ Note:
 - This test intentionally uses live provider calls, so rare transient HTTP
   failures are possible. The LLM retry policy should absorb most flakiness.
   A one-off rerun is acceptable; repeated failures indicate a systematic issue.
+
+To run:
+```bash
+PYTHONPATH=. uv run python -m evaluation.smoke_tests.test_llm_openai
+```
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ import sys
 from pathlib import Path
 
 from lib.constants import REPO_ROOT
+from lib.timestamp_utils import get_current_timestamp
 
 INPUT_CSV = Path(__file__).with_name("testing_data.csv")
 EXPECTED_ALIAS = "openai"
@@ -173,11 +179,13 @@ def test_openai_smoke_two_runs(tmp_path: Path) -> None:
     output_root = tmp_path / "outputs"
     output_root.mkdir(parents=True, exist_ok=True)
 
+    print(f"Running first eval once...")
     first = _run_eval_once(output_root)
     _assert_run_succeeded(first)
     first_run_dir = _latest_run_dir(output_root)
     _assert_first_run_complete(first_run_dir)
 
+    print(f"Running second eval once...")
     second = _run_eval_once(output_root)
     _assert_run_succeeded(second)
     second_run_dir = _latest_run_dir(output_root)
@@ -188,3 +196,8 @@ def test_openai_smoke_two_runs(tmp_path: Path) -> None:
     )
 
     _assert_second_run_deduped(second_run_dir)
+
+
+if __name__ == "__main__":
+    timestamp = get_current_timestamp()
+    test_openai_smoke_two_runs(Path(f"tmp/{timestamp}/openai_smoke_two_runs"))
