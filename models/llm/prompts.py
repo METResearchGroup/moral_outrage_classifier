@@ -36,9 +36,9 @@ Post: "I'm so glad I'm not a parent. It's so hard to raise kids these days."
 Answer: {"label": 0}
 
 Post: "Why is it always the poor who have to pay for the mistakes of the rich?"
-Answer: {"label": 0}
+Answer: {"label": 1}
 
-Post: "It's not fair that the rich get richer and the poor get poorer."
+Post: "The weather was nice today and I took a long walk."
 Answer: {"label": 0}
 
 Post: {{input}}
