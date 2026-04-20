@@ -21,6 +21,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -73,23 +74,18 @@ def _run_eval_once(output_root: Path) -> subprocess.CompletedProcess[str]:
         "10",
     ]
 
-    # check=False so we can print useful stdout/stderr in assertion messages
+    # Stream output so tqdm/progress is visible while running.
     return subprocess.run(
         cmd,
         cwd=REPO_ROOT,
         env=env,
-        capture_output=True,
         text=True,
         check=False,
     )
 
 
 def _assert_run_succeeded(proc: subprocess.CompletedProcess[str]) -> None:
-    assert proc.returncode == 0, (
-        "Evaluation harness subprocess failed.\n"
-        f"STDOUT:\n{proc.stdout}\n\n"
-        f"STDERR:\n{proc.stderr}"
-    )
+    assert proc.returncode == 0, "Evaluation harness subprocess failed."
 
 
 def _assert_common_artifacts_exist(run_dir: Path) -> None:
@@ -173,17 +169,20 @@ def _assert_second_run_deduped(run_dir: Path) -> None:
     )
 
 
-def test_openai_smoke_two_runs(tmp_path: Path) -> None:
+def run_openai_smoke_two_runs(output_root: Path) -> None:
     assert INPUT_CSV.exists(), f"Missing smoke-test dataset: {INPUT_CSV}"
 
-    output_root = tmp_path / "outputs"
     output_root.mkdir(parents=True, exist_ok=True)
+    print(f"Smoke test output directory: {output_root}")
 
     print(f"Running first eval once...")
     first = _run_eval_once(output_root)
     _assert_run_succeeded(first)
     first_run_dir = _latest_run_dir(output_root)
     _assert_first_run_complete(first_run_dir)
+    print(
+        "First run success: all input rows were classified and artifacts/metrics were validated."
+    )
 
     print(f"Running second eval once...")
     second = _run_eval_once(output_root)
@@ -196,8 +195,29 @@ def test_openai_smoke_two_runs(tmp_path: Path) -> None:
     )
 
     _assert_second_run_deduped(second_run_dir)
+    print(
+        "Second run success: deduplication worked and no additional labeling was performed."
+    )
+
+    print(f"Smoke test completed successfully for {EXPECTED_ALIAS}.")
+
+
+def test_openai_smoke_two_runs(tmp_path: Path) -> None:
+    run_openai_smoke_two_runs(tmp_path / "outputs")
 
 
 if __name__ == "__main__":
     timestamp = get_current_timestamp()
-    test_openai_smoke_two_runs(Path(f"tmp/{timestamp}/openai_smoke_two_runs"))
+    output_root = (
+        REPO_ROOT
+        / "evaluation"
+        / "smoke_tests"
+        / "outputs"
+        / "openai"
+        / timestamp
+    )
+    try:
+        run_openai_smoke_two_runs(output_root)
+    finally:
+        # Teardown: keep workspace clean for one-off local smoke runs.
+        shutil.rmtree(output_root, ignore_errors=True)
