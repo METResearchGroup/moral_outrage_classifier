@@ -36,7 +36,7 @@ You can pass multiple family aliases, for example `--models openai --models pers
 
 ## Models currently supported
 
-Aliases are defined in `MODEL_REGISTRY` in `evaluation/model_registry.py`: `perspective_api`, `openai`, `qwen`, `anthropic`, and `minimax`. The merged `output.csv` records the **resolved** model id for LLM runs (for example `gpt-5-nano`), not the CLI alias. Run `metadata.json` lists both `llm_provider_name` and `resolved_model_id` per model, plus prompt fields for LLM facades.
+Aliases are defined in `MODEL_REGISTRY` in `evaluation/model_registry.py`: `perspective_api`, `openai`, `qwen`, `anthropic`, and `minimax`. The merged `output.csv` records the **resolved** model id for LLM runs (for example `gpt-5.4` for the `openai` alias), not the CLI alias. Run `metadata.json` lists both `llm_provider_name` and `resolved_model_id` per model, plus prompt fields for LLM facades.
 
 ## Pull Request Link
 

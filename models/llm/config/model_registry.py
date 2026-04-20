@@ -250,7 +250,7 @@ class ModelConfigRegistry:
         """Get the default model from the configuration.
 
         Returns:
-            Default model identifier (e.g., 'gpt-4o-mini')
+            Default model identifier (e.g., 'gpt-5.4')
 
         Raises:
             KeyError: If default_model is not found in the default configuration
