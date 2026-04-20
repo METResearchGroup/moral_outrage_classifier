@@ -42,6 +42,7 @@ class LLMService:
         import logging
 
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+        litellm.suppress_debug_info = True
 
     def _get_provider_for_model(self, model: str) -> LLMProviderProtocol:
         """Get the provider instance for a given model.
