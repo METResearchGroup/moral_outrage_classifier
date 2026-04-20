@@ -5,10 +5,8 @@ from pathlib import Path
 
 import typer
 
-from evaluation.run_evaluation_harness import (
-    EvaluationHarness,
-    build_models_metadata_entries,
-)
+from evaluation.metadata import build_models_metadata_entries
+from evaluation.run_evaluation_harness import EvaluationHarness
 from lib.timestamp_utils import get_current_timestamp
 
 
