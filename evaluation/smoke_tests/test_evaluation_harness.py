@@ -90,6 +90,7 @@ def _run_eval_once(
     output_root: Path,
     input_csv: Path,
     model_alias: str,
+    batch_size: int = 10,
 ) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = "."
@@ -105,7 +106,7 @@ def _run_eval_once(
         "--models",
         model_alias,
         "--batch-size",
-        "10",
+        str(batch_size),
     ]
 
     return subprocess.run(
@@ -241,12 +242,16 @@ def run_harness_smoke_test(
     input_csv: Path | None = None,
     output_root: Path | None = None,
     cleanup: bool | None = None,
+    batch_size: int = 10,
 ) -> None:
     """Run the two-phase harness smoke test for a single model alias.
 
     If ``output_root`` is omitted, uses
     ``evaluation/smoke_tests/outputs/<alias>/<timestamp>/`` and removes it after a
     successful run when cleanup is True (default for that case).
+
+    ``batch_size`` is passed to ``evaluation.examples_test`` (default 10). Lower
+    values reduce parallel LLM completions per batch (e.g. for rate limits).
 
     For pytest, pass ``output_root=tmp_path / "outputs"`` and ``cleanup=False``.
     """
@@ -284,6 +289,7 @@ def run_harness_smoke_test(
             output_root=output_root,
             input_csv=input_path,
             model_alias=model_alias,
+            batch_size=batch_size,
         )
         _assert_run_succeeded(first)
         first_run_dir = _latest_run_dir(output_root)
@@ -303,6 +309,7 @@ def run_harness_smoke_test(
             output_root=output_root,
             input_csv=input_path,
             model_alias=model_alias,
+            batch_size=batch_size,
         )
         _assert_run_succeeded(second)
         second_run_dir = _latest_run_dir(output_root)
