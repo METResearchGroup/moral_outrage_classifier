@@ -1,4 +1,4 @@
-"""Anthropic provider implementation (direct API via LiteLLM)."""
+"""Anthropic provider implementation."""
 
 import copy
 from typing import Any
