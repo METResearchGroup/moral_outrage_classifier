@@ -1,4 +1,4 @@
-"""Smoke entrypoint: evaluation harness with OpenAI alias (resolved: gpt-5-nano).
+"""Smoke entrypoint: evaluation harness with OpenAI alias (resolved: gpt-5.4).
 
 To run:
 ```bash

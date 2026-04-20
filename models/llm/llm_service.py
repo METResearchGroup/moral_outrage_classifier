@@ -48,7 +48,7 @@ class LLMService:
         """Get the provider instance for a given model.
 
         Args:
-            model: Model identifier (e.g., 'gpt-4o-mini', 'groq/llama3-8b-8192')
+            model: Model identifier (e.g., 'gpt-5.4', 'groq/llama3-8b-8192')
 
         Returns:
             Provider instance that supports the given model
@@ -324,7 +324,7 @@ class LLMService:
         Args:
             messages: List of message dicts with 'role' and 'content' keys
             response_model: Pydantic model class to parse the response into
-            model: Model to use (default: from config, falls back to gpt-4o-mini-2024-07-18)
+            model: Model to use (default: ``ModelConfigRegistry.get_default_model()`` from models.yaml)
             **kwargs: Additional parameters to pass to the API (temperature, max_tokens, etc.)
                 These override any default kwargs from the model configuration.
 
@@ -423,7 +423,7 @@ class LLMService:
         Args:
             prompts: List of prompt strings
             response_model: Pydantic model class to parse each response into
-            model: Model to use (default: from config, falls back to gpt-4o-mini-2024-07-18)
+            model: Model to use (default: ``ModelConfigRegistry.get_default_model()`` from models.yaml)
             role: Message role for all prompts (default: 'user')
             **kwargs: Additional parameters to pass to the API (temperature, max_tokens, etc.)
                 These override any default kwargs from the model configuration.
