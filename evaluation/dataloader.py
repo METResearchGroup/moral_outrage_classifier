@@ -29,12 +29,23 @@ def _metadata_model_entry_matches(
     """True if this prior-run metadata row describes the same eval universe as (resolved_model_id, prompt_hash)."""
     if entry.get("resolved_model_id") != resolved_model_id:
         return False
-    return _normalize_prompt_hash(entry.get("prompt_hash")) == _normalize_prompt_hash(prompt_hash)
+    return _normalize_prompt_hash(entry.get("prompt_hash")) == _normalize_prompt_hash(
+        prompt_hash
+    )
 
 
 class DataLoader:
-    def __init__(self, input_path: Path, output_path: Path, batch_size: int, model_name: str, max_rows: int | float = float('inf')):
-        self.data: list[dict[str, str | int]] = [] # stores the records in RAM after filtering out already processed records
+    def __init__(
+        self,
+        input_path: Path,
+        output_path: Path,
+        batch_size: int,
+        model_name: str,
+        max_rows: int | float = float("inf"),
+    ):
+        self.data: list[
+            dict[str, str | int]
+        ] = []  # stores the records in RAM after filtering out already processed records
 
         path = Path(input_path)
         if not path.is_file():
@@ -51,10 +62,10 @@ class DataLoader:
         try:
             with open(path, "r") as f:
                 reader = csv.reader(f)
-                return sum(1 for row in reader) - 1 # subtract 1 for header row
+                return sum(1 for row in reader) - 1  # subtract 1 for header row
         except FileNotFoundError:
             return 0
-        
+
     def get_unique_model_run_identifier(self) -> tuple[str, str | None]:
         """Get the unique model run identifiers for the current model.
         For LLM models, this is (resolved_model_id, prompt_hash).
@@ -125,7 +136,9 @@ class DataLoader:
                     # the one that we care about).
                     if not any(
                         isinstance(m, dict)
-                        and _metadata_model_entry_matches(m, resolved_model_id, prompt_hash)
+                        and _metadata_model_entry_matches(
+                            m, resolved_model_id, prompt_hash
+                        )
                         for m in models_meta
                     ):
                         continue
@@ -148,27 +161,35 @@ class DataLoader:
 
         resolved_model_id, prompt_hash = self.get_unique_model_run_identifier()
         model_id = get_model_id_value(self.model_name)
-        output_files_to_check = self._load_metadata_files_from_past_duplicate_runs(resolved_model_id, prompt_hash)
-        self._add_already_processed_ids_to_set(already_processed_ids, output_files_to_check, model_id)
+        output_files_to_check = self._load_metadata_files_from_past_duplicate_runs(
+            resolved_model_id, prompt_hash
+        )
+        self._add_already_processed_ids_to_set(
+            already_processed_ids, output_files_to_check, model_id
+        )
 
         return already_processed_ids
-    
+
     def _get_field_value(self, field_name: str, row: dict):
         """Get a value for a specific field in the .csv file.
-           The field can be mapped to the canonical field names using the column_name_conversion dictionary.
-        """ 
-        value = next((row[key] for key in column_name_conversion[field_name] if key in row), None)  
-        return value 
-    
-    def _post_already_processed(self, row: dict[str, str], already_processed_ids: set[str]) -> bool:
+        The field can be mapped to the canonical field names using the column_name_conversion dictionary.
+        """
+        value = next(
+            (row[key] for key in column_name_conversion[field_name] if key in row), None
+        )
+        return value
+
+    def _post_already_processed(
+        self, row: dict[str, str], already_processed_ids: set[str]
+    ) -> bool:
         post_id = self._get_field_value("id", row)
         return post_id in already_processed_ids
 
     def _get_new_row_data(self, row: dict[str, str]) -> dict[str, str | int]:
         """
         Appends new data to the list of new_data if the post id is not in the set of already processed ids.
-        Assumes that the row is an unprocessed record. 
-        
+        Assumes that the row is an unprocessed record.
+
         Args:
             row (dict[str, str]): A dictionary representing a row from the input CSV file.
                                   Contains keys that can be mapped to "id", "text", and "gold_label" using the column_name_conversion dictionary.
@@ -179,7 +200,7 @@ class DataLoader:
             None: This function does not return anything, it modifies the new_data list in place.
         """
         post_id = self._get_field_value("id", row)
-        text = self._get_field_value("text", row) 
+        text = self._get_field_value("text", row)
         gold_label_str = self._get_field_value("gold_label", row)
 
         try:
@@ -189,10 +210,12 @@ class DataLoader:
 
         return {"text": text, "gold_label": gold_label, "id": post_id}
 
-    def _return_new_records(self, already_processed_ids: set[str]) -> list[dict[str, str | int]]:
+    def _return_new_records(
+        self, already_processed_ids: set[str]
+    ) -> list[dict[str, str | int]]:
         """
         Uses the set of already processed id's to filter out records from input path
-        
+
         Args:
             already_processed_ids: A set of post ids that have already been processed.
 
@@ -209,7 +232,9 @@ class DataLoader:
 
                 new_data.append(self._get_new_row_data(row))
                 if len(new_data) >= self.max_rows:
-                    print(f"Found {self.input_file_rows} rows. Processing first {self.max_rows} new rows...")
+                    print(
+                        f"Found {self.input_file_rows} rows. Processing first {self.max_rows} new rows..."
+                    )
                     break
 
         return new_data
@@ -226,7 +251,7 @@ class DataLoader:
 
     def __iter__(self) -> Iterator[list[dict[str, str | int]]]:
         for i in range(0, len(self.data), self.batch_size):
-            yield self.data[i:i + self.batch_size]
+            yield self.data[i : i + self.batch_size]
 
     def __len__(self) -> int:
         """
