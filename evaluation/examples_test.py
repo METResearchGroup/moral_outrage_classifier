@@ -111,7 +111,10 @@ def main(
     print("DONE RUNNING EVALUATION, NOW DISPLAYING RESULTS")
     eh.display_results()
 
-    write_metadata_file(input_path, output_root, models, max_rows, batch_size, elapsed, timestamp)
+    write_metadata_file(
+        input_path, output_root, models, max_rows, batch_size, elapsed, timestamp
+    )
+
 
 if __name__ == "__main__":
     typer.run(main)
