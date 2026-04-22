@@ -22,7 +22,7 @@ RETRIES = 3
 
 VALID_MODELS = list(MODEL_REGISTRY.keys())
 
-RETRY_WAIT_TIME = 2
+RETRY_WAIT_TIME_SECONDS = 2
 
 class EvaluationHarness:
     def __init__(
@@ -86,7 +86,7 @@ class EvaluationHarness:
                     "model": model_name,
                 })
     
-    @retry(stop=stop_after_attempt(RETRIES), wait=wait_fixed(RETRY_WAIT_TIME))
+    @retry(stop=stop_after_attempt(RETRIES), wait=wait_fixed(RETRY_WAIT_TIME_SECONDS))
     def _process_batch(
         self, 
         texts: list[str], 
@@ -98,7 +98,7 @@ class EvaluationHarness:
         predictions = model.batch_classify(texts)
         self._write_to_model_csv(path, model_name, batch, predictions)
 
-    def _write_to_deadletter_csv(self, path, model_name, batch):
+    def _write_to_deadletter_csv(self, path: Path, model_name: str, batch: list[dict[str, str | int]]):
         deadletter_file = self._get_deadletter_path(path)
 
         with open(deadletter_file, "a") as f:
