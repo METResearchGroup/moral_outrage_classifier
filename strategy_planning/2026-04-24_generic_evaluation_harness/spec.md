@@ -133,7 +133,18 @@ V2 is a generic batch text-classification tool where users can supply their own 
   - runs work for datasets under 500 rows
   - labeling works with optional evaluation when `gold_label` is present
 
-### PR 2: Add FastAPI backend around harness execution
+### PR 2: Deploy Streamlit app to Streamlit Community Cloud
+
+- Deliverables:
+  - Streamlit Community Cloud deployment for the Streamlit-only wrapper
+  - app configuration and secrets needed for the hosted v1 flow
+  - a markdown file with instructions for how to test this.
+- Success looks like:
+  - an end user can complete the v1 flow in the hosted app
+  - we can gather real user feedback before investing in backend separation
+  - the hosted app still works for small runs using the existing harness behavior
+
+### PR 3: Add FastAPI backend around harness execution
 
 - Deliverables:
   - FastAPI endpoints for dataset selection, run execution, and results retrieval
@@ -143,7 +154,7 @@ V2 is a generic batch text-classification tool where users can supply their own 
   - the harness can be invoked through HTTP locally.
   - the backend preserves the same V1 semantics as the Streamlit-only version.
 
-### PR 3: Get local Streamlit + FastAPI working end to end
+### PR 4: Get local Streamlit + FastAPI working end to end
 
 - Deliverables:
   - Streamlit app updated to call the FastAPI backend rather than invoking the harness directly
@@ -153,7 +164,7 @@ V2 is a generic batch text-classification tool where users can supply their own 
   - a full local flow works from upload through export using Streamlit + FastAPI
   - the UI still shows status/progress and failed-row counts clearly
 
-### PR 4: Deploy FastAPI backend with Docker on Railway
+### PR 5: Deploy FastAPI backend with Docker on Railway
 
 - Deliverables:
   - Dockerized FastAPI service
@@ -163,12 +174,12 @@ V2 is a generic batch text-classification tool where users can supply their own 
   - the FastAPI backend is deployed and reachable in Railway
   - the deployed service matches local behavior for the V1 flow
 
-### PR 5: Deploy Streamlit app to Streamlit Community Cloud
+### PR 6: Point Streamlit app at deployed Railway backend
 
 - Deliverables:
-  - Streamlit Community Cloud deployment
+  - Streamlit app updated to target the deployed Railway backend
   - configuration pointing the app at the deployed Railway backend
-  - smoke-tested hosted user flow
+  - smoke-tested hosted user flow using the split deployment architecture
 - Success looks like:
-  - an end user can complete the V1 flow in the hosted app
   - the hosted UI works against the deployed FastAPI backend for small runs
+  - the post-feedback architecture migration does not change the user-facing v1 flow
