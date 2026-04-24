@@ -1,0 +1,22 @@
+{
+  "git_commit_hash": "a174ddb539b8bb5dcfcf96325c908473dbb1b047",
+  "timestamp": "2026_04_23-15:13:10",
+  "cli_args": {
+    "input_path": "evaluation/sample_data/26k_training_data.csv",
+    "output_root": "evaluation/outputs",
+    "models": [
+      "openai"
+    ],
+    "max_rows": null,
+    "batch_size": 10
+  },
+  "models": [
+    {
+      "llm_provider_name": "openai",
+      "resolved_model_id": "gpt-5.4-nano",
+      "prompt_hash": "0204d6b772a986de3b344ea6752d1f22b30fb52bc12ba87162bfb65247afb316",
+      "prompt_template": "\n\nYou are a helpful assistant. Your job is to analyze a single social media post and answer a binary classification question.\n\nThe key definition of moral outrage included the following three components: a person can be viewed as expressing moral outrage if (1) they have feelings in response to a perceived violation of their personal morals, (2) their feelings are comprised of emotions such as anger, disgust and contempt, and (3) the feelings are associated with specific reactions including blaming people/events/things, holding them responsible, or wanting to punish them.\n\nMoral outrage is a emotional response associated with a host of reactions. Most of us just \"know\" what outrage is based on our experience. But to be more precise, we can say someone is morally outraged when:\n\n(1) They have feelings in response to a violation of their morals. For instance, Bob thinks that abortion is morally wrong, and when his city passed a law that legalized abortion he became very upset. Since the law upset him because it violated his moral views about abortion, the feeling he felt might be moral outrage.\n\n(2) Their feelings are comprised of emotions such as anger, disgust and contempt. For instance, Bob was upset but specifically he was angered and disgusted at the fact that abortion would become legal in his city. These emotions made him feel very negative and also \"worked up\".\n\n(3) They are associated with specific reactions: blaming people/events/things, holding them responsible, or wanting to punish them. For instance, Bob blamed all the non-religious voters in his city for allowing the law to pass. He also felt like the city council members should be held responsible for allowing the law to actually become reality. For all these reasons, we can say Bob is morally outraged about the legalizing of abortion in his city.\n\n- If you judge that the post describes, reports, or implies moral outrage, respond with: \"1\"\n- If the post is unrelated or does not describe moral outrage, respond with: \"0\"\n\nYou must return an output in the following JSON format: {\"label\": 0} or {\"label\": 1}.\n\nReturn JSON only:\n- If the post describes, reports, or implies moral outrage: {\"label\": 1}\n- Otherwise: {\"label\": 0}\n\nDo not return plain text, explanations, or extra keys.\n\nExample:\n\nPost: \"How dare they let children go hungry while executives collect bonuses.\"\nAnswer: {\"label\": 1}\n\nPost: \"I'm so glad I'm not a parent. It's so hard to raise kids these days.\"\nAnswer: {\"label\": 0}\n\nPost: \"Why is it always the poor who have to pay for the mistakes of the rich?\"\nAnswer: {\"label\": 1}\n\nPost: \"The weather was nice today and I took a long walk.\"\nAnswer: {\"label\": 0}\n\nPost: {{input}}\nAnswer:\n\n"
+    }
+  ],
+  "runtime_seconds": 8683.5803
+}
