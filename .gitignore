@@ -30,3 +30,17 @@ htmlcov/
 .DS_Store
 
 *.env
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+terraform.tfvars.json
+.terraform.lock.hcl
+# Local .auto.tfvars files containing secrets or environment overrides
+*.auto.tfvars
+*.auto.tfvars.json
+# Terraform plan outputs
+*.tfplan
