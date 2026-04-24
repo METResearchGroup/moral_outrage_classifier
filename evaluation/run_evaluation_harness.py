@@ -6,7 +6,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from tqdm import tqdm
 
 from models.base import BaseModel
-from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
+from models.perspective_api.model import PROB_LABEL_THRESHOLD
 from pathlib import Path
 
 from evaluation.dataloader import DataLoader
@@ -17,10 +17,6 @@ from models.perspective_api.model import PROB_LABEL_THRESHOLD
 from schemas.responses import MoralOutrage
 
 FIELDNAMES = ["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"]
-
-MODEL_REGISTRY: dict[str, type] = {
-    "perspective_api": PerspectiveAPIModel,
-}
 
 RETRIES = 3
 
