@@ -150,8 +150,11 @@ class LLMService:
             **kwargs,
         )
         completion_kwargs["messages"] = messages
-        # Avoid global LiteLLM state; use the provider instance's key per request.
-        completion_kwargs["api_key"] = provider.api_key
+        # Avoid global LiteLLM state; use the provider instance's key per request
+        # when that provider authenticates with an API key.
+        api_key = provider.api_key
+        if api_key is not None:
+            completion_kwargs["api_key"] = api_key
 
         try:
             result = litellm.completion(**completion_kwargs)  # type: ignore
@@ -203,8 +206,11 @@ class LLMService:
         # Remove placeholder messages from kwargs since batch_completion takes it separately
         completion_kwargs.pop("messages", None)
         completion_kwargs["messages"] = messages_list
-        # Avoid global LiteLLM state; use the provider instance's key per request.
-        completion_kwargs["api_key"] = provider.api_key
+        # Avoid global LiteLLM state; use the provider instance's key per request
+        # when that provider authenticates with an API key.
+        api_key = provider.api_key
+        if api_key is not None:
+            completion_kwargs["api_key"] = api_key
 
         try:
             results: list[Any] = batch_completion(**completion_kwargs)  # type: ignore
