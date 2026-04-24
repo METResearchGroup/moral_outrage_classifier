@@ -89,7 +89,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prompt", default=DEFAULT_PROMPT)
     parser.add_argument("--model-id", default=os.getenv("BEDROCK_MODEL_ID", DEFAULT_MODEL_ID))
-    parser.add_argument("--region", default=os.getenv("AWS_REGION", DEFAULT_REGION))
     parser.add_argument("--max-tokens", type=int, default=256)
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument(
@@ -102,8 +101,6 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-
-    print(f"Invoking {args.model_id} in {DEFAULT_REGION}...")
     start = time.perf_counter()
     try:
         payload = invoke_qwen(
