@@ -1,8 +1,13 @@
 import collections
 import csv
 import json
-from pathlib import Path
+
+from tenacity import retry, stop_after_attempt, wait_fixed
 from tqdm import tqdm
+
+from models.base import BaseModel
+from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
+from pathlib import Path
 
 from evaluation.dataloader import DataLoader
 from evaluation.metadata import get_model_id_value
@@ -13,6 +18,15 @@ from schemas.responses import MoralOutrage
 
 FIELDNAMES = ["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"]
 
+MODEL_REGISTRY: dict[str, type] = {
+    "perspective_api": PerspectiveAPIModel,
+}
+
+RETRIES = 3
+
+VALID_MODELS = list(MODEL_REGISTRY.keys())
+
+RETRY_WAIT_TIME_SECONDS = 2
 
 class EvaluationHarness:
     def __init__(
@@ -45,8 +59,11 @@ class EvaluationHarness:
         for dataloader in self.dataloaders.values():
             dataloader.load_data()
 
-    def _get_model_output_path(self, output_path: Path, model_name: str) -> str:
+    def _get_model_output_path(self, output_path: Path, model_name: str) -> Path:
         return output_path / f"{model_name}.csv"
+    
+    def _get_deadletter_path(self, output_path: Path) -> Path:
+        return output_path / "deadletter.csv"
 
     def _write_to_model_csv(
         self,
@@ -69,25 +86,46 @@ class EvaluationHarness:
                     if model_name == "perspective_api":
                         pred_label = 1 if prediction.moral_outrage_score > PROB_LABEL_THRESHOLD else 0
                     else:
-                        pred_label = int(prediction.moral_outrage_score)
+                        pred_label = prediction.moral_outrage_score 
 
-                is_correct = (
-                    int(sample["gold_label"]) == int(pred_label)
-                    if pred_label is not None and sample["gold_label"] is not None
-                    else None
-                )
+                is_correct = int(sample["gold_label"]) == int(pred_label) if pred_label is not None and sample["gold_label"] is not None else None
 
-                writer.writerow(
-                    {
-                        "id": sample["id"],
-                        "dataset": self.input_path,
-                        "text": sample["text"],
-                        "gold_label": sample["gold_label"],
-                        "pred_label": pred_label,
-                        "is_correct": is_correct,
-                        "model": csv_model,
-                    }
-                )
+                writer.writerow({
+                    "id": sample["id"],
+                    "dataset": self.input_path,
+                    "text": sample["text"],
+                    "gold_label": sample["gold_label"],
+                    "pred_label": pred_label,
+                    "is_correct": is_correct,
+                    "model": model_name,
+                })
+    
+    @retry(stop=stop_after_attempt(RETRIES), wait=wait_fixed(RETRY_WAIT_TIME_SECONDS))
+    def _process_batch(
+        self, 
+        texts: list[str], 
+        path: Path, 
+        model: BaseModel, 
+        model_name: str, 
+        batch: list[dict[str, str | int]],
+    ) -> None:
+        predictions = model.batch_classify(texts)
+        self._write_to_model_csv(path, model_name, batch, predictions)
+
+    def _write_to_deadletter_csv(self, path: Path, model_name: str, batch: list[dict[str, str | int]]):
+        deadletter_file = self._get_deadletter_path(path)
+
+        with open(deadletter_file, "a") as f:
+            writer = csv.DictWriter(f, fieldnames=["id", "text", "model"])
+            if f.tell() == 0:
+                writer.writeheader()
+            
+            for sample in batch:
+                writer.writerow({
+                    "id": sample.get("id", "NO ID FOUND"),
+                    "text": sample.get("text", "NO TEXT FOUND"),
+                    "model": model_name
+                })
 
     def _run_model_evaluation(self, model_name: str) -> None:
         model = MODEL_REGISTRY[model_name]()
@@ -97,9 +135,10 @@ class EvaluationHarness:
             text_ids = [sample["id"] for sample in batch]
 
             try:
-                predictions = model.batch_classify(texts, text_ids)
-                self._write_to_model_csv(path, model_name, batch, predictions)
+                self._process_batch(texts, path, model, model_name, batch)
+
             except Exception as e:
+                self._write_to_deadletter_csv(self.new_output_path, model_name, batch)
                 print(f"Error during model evaluation: {e}")
                 
     def _copy_model_results_to_merged_csv(self, path: str, writer: csv.DictWriter) -> None:
