@@ -1,0 +1,9 @@
+{
+  "perspective_api": {
+    "total_samples": 25811,
+    "accuracy": 0.7721,
+    "precision": 0.7797,
+    "recall": 0.6756,
+    "f1_score": 0.7239
+  }
+}

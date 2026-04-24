@@ -14,7 +14,7 @@ class BaseHarnessLLMModel(ClassifierBaseModel):
     """Shared facade for all LLM models."""
 
     alias: ClassVar[str] # e.g. "openai", "qwen", "anthropic", "minimax"
-    resolved_model_id: ClassVar[str] # e.g. "gpt-5.4", "qwen/qwen3.6-plus", "anthropic/claude-sonnet-4-6", "minimax/minimax-m2.5"
+    resolved_model_id: ClassVar[str] # e.g. "gpt-5.4-nano", "qwen/qwen3.6-plus", "anthropic/claude-sonnet-4-6", "minimax/minimax-m2.5"
 
     def __init__(self, llm_service: LLMService | None = None) -> None:
         self._llm_service = llm_service or get_llm_service()
@@ -74,7 +74,7 @@ class BaseHarnessLLMModel(ClassifierBaseModel):
 
 class OpenAIModel(BaseHarnessLLMModel):
     alias: ClassVar[str] = "openai"
-    resolved_model_id: ClassVar[str] = "gpt-5.4"
+    resolved_model_id: ClassVar[str] = "gpt-5.4-nano"
 
 
 class QwenModel(BaseHarnessLLMModel):

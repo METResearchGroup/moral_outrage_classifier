@@ -1,0 +1,22 @@
+{
+  "git_commit_hash": "a174ddb539b8bb5dcfcf96325c908473dbb1b047",
+  "timestamp": "2026_04_23-14:43:53",
+  "cli_args": {
+    "input_path": "evaluation/sample_data/26k_training_data.csv",
+    "output_root": "evaluation/outputs",
+    "models": [
+      "perspective_api"
+    ],
+    "max_rows": null,
+    "batch_size": 10
+  },
+  "models": [
+    {
+      "llm_provider_name": "perspective_api",
+      "resolved_model_id": "perspective_api",
+      "prompt_hash": null,
+      "prompt_template": null
+    }
+  ],
+  "runtime_seconds": 1553.9474
+}
