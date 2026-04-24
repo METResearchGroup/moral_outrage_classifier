@@ -9,8 +9,8 @@
 
 models:
   default:
-    # our default model is gpt-4o-mini.
-    default_model: "gpt-4o-mini"
+    # our default model is gpt-5.4.
+    default_model: "gpt-5.4"
     llm_inference_kwargs:
       temperature: 0.0
 
@@ -18,6 +18,15 @@ models:
     llm_inference_kwargs:
       temperature: 0.0
     supported_models:
+      "gpt-5.4":
+        llm_inference_kwargs: {
+          # gpt-5 family: LiteLLM rejects temperature=0.0; use 1 (same as gpt-5-nano).
+          temperature: 1
+        }
+      "gpt-5.4-nano":
+        llm_inference_kwargs: {
+          temperature: 1
+        }
       "gpt-4o-mini":
         llm_inference_kwargs: {}
       "gpt-4o-mini-2024-07-18":
@@ -34,6 +43,13 @@ models:
           temperature: 1
         }
 
+  anthropic:
+    llm_inference_kwargs:
+      temperature: 0.0
+    supported_models:
+      "anthropic/claude-sonnet-4-6":
+        llm_inference_kwargs: {}
+
   openrouter:
     llm_inference_kwargs:
       temperature: 0.0
@@ -41,6 +57,4 @@ models:
       "qwen/qwen3.6-plus":
         llm_inference_kwargs: {}
       "minimax/minimax-m2.5":
-        llm_inference_kwargs: {}
-      "anthropic/claude-sonnet-4.6":
         llm_inference_kwargs: {}

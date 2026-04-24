@@ -16,7 +16,7 @@ EXAMPLE_TEXTS = [
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     print("Batch example:")
-    batch_results = run_batch_example_query(EXAMPLE_TEXTS, model="gpt-5-nano")
+    batch_results = run_batch_example_query(EXAMPLE_TEXTS, model="gpt-5.4")
     for text, result in zip(EXAMPLE_TEXTS, batch_results, strict=True):
         print(f"Text: {text}\tLabel: {result.label}")
         print("-" * 100)

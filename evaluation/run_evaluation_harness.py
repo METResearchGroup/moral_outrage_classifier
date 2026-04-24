@@ -7,9 +7,13 @@ from tqdm import tqdm
 
 from models.base import BaseModel
 from models.perspective_api.model import PerspectiveAPIModel, PROB_LABEL_THRESHOLD
-from evaluation.dataloader import DataLoader
 from pathlib import Path
+
+from evaluation.dataloader import DataLoader
+from evaluation.metadata import get_model_id_value
+from evaluation.model_registry import MODEL_REGISTRY, VALID_MODELS
 from lib.testing_utils import print_table
+from models.perspective_api.model import PROB_LABEL_THRESHOLD
 from schemas.responses import MoralOutrage
 
 FIELDNAMES = ["id", "dataset", "text", "gold_label", "pred_label", "is_correct", "model"]
@@ -61,10 +65,20 @@ class EvaluationHarness:
     def _get_deadletter_path(self, output_path: Path) -> Path:
         return output_path / "deadletter.csv"
 
-    def _write_to_model_csv(self, path: Path, model_name: str, batch: list[dict[str, str | int]], predictions: list[MoralOutrage]) -> None:
-        with open(path, "w") as f:
+    def _write_to_model_csv(
+        self,
+        path: Path,
+        model_name: str,
+        batch: list[dict[str, str | int]],
+        predictions: list[MoralOutrage | None],
+    ) -> None:
+        append = path.exists() and path.stat().st_size > 0
+        mode = "a" if append else "w"
+        csv_model = get_model_id_value(model_name)
+        with open(path, mode, newline="") as f:
             writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-            writer.writeheader()
+            if not append:
+                writer.writeheader()
             for sample, prediction in zip(batch, predictions, strict=True):
                 if prediction is None:
                     pred_label = None
@@ -118,6 +132,7 @@ class EvaluationHarness:
         path = self._get_model_output_path(self.new_output_path, model_name)
         for batch in tqdm(self.dataloaders[model_name], desc=f"Evaluating {model_name}"):
             texts = [sample["text"] for sample in batch]
+            text_ids = [sample["id"] for sample in batch]
 
             try:
                 self._process_batch(texts, path, model, model_name, batch)

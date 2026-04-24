@@ -1,4 +1,4 @@
-"""OpenRouter provider implementation."""
+"""Anthropic provider implementation."""
 
 import copy
 from typing import Any
@@ -10,39 +10,33 @@ from models.llm.config.model_registry import ModelConfigRegistry
 from models.llm.providers.base import LLMProviderProtocol
 
 
-class OpenRouterProvider(LLMProviderProtocol):
-    """OpenRouter provider implementation.
+class AnthropicProvider(LLMProviderProtocol):
+    """Anthropic provider: API key from ANTHROPIC_API_KEY, models from config."""
 
-    Handles OpenRouter-specific logic:
-    - API key management (OPENROUTER_API_KEY)
-    - Strict structured-output schema patching (same rules as OpenAI)
-    - LiteLLM model IDs: openrouter/<vendor>/<model>
-    """
-
-    def __init__(self):
+    def __init__(self) -> None:
         self._initialized = False
         self._api_key: str | None = None
 
     @property
     def provider_name(self) -> str:
-        return "openrouter"
+        return "anthropic"
 
     @property
     def supported_models(self) -> list[str]:
-        return ModelConfigRegistry.list_models_for_provider("openrouter")
+        return ModelConfigRegistry.list_models_for_provider("anthropic")
 
     @property
     def api_key(self) -> str:
         if self._api_key is None:
             raise RuntimeError(
-                "OpenRouterProvider has not been initialized with an API key. "
+                "AnthropicProvider has not been initialized with an API key. "
                 "Call initialize() before making LiteLLM requests."
             )
         return self._api_key
 
     def initialize(self, api_key: str | None = None) -> None:
         if api_key is None:
-            api_key = EnvVarsContainer.get_env_var("OPENROUTER_API_KEY", required=True)
+            api_key = EnvVarsContainer.get_env_var("ANTHROPIC_API_KEY", required=True)
         if not self._initialized:
             self._api_key = api_key
             self._initialized = True
@@ -55,10 +49,7 @@ class OpenRouterProvider(LLMProviderProtocol):
         response_model: type[BaseModel],
         model_config: dict[str, Any],
     ) -> dict[str, Any]:
-        """Format OpenAI-compatible structured output for OpenRouter.
-
-        Strict json_schema requires additionalProperties: false on all objects.
-        """
+        """Format strict json_schema for Anthropic (additionalProperties: false on objects)."""
         schema = response_model.model_json_schema()
         fixed_schema = self._fix_schema_for_strict_mode(schema)
 
@@ -71,12 +62,6 @@ class OpenRouterProvider(LLMProviderProtocol):
             },
         }
 
-    def _litellm_model_id(self, public_model_id: str) -> str:
-        """Map public config ID (e.g. qwen/qwen3.6-plus) to LiteLLM OpenRouter form."""
-        if public_model_id.startswith("openrouter/"):
-            return public_model_id
-        return f"openrouter/{public_model_id}"
-
     def prepare_completion_kwargs(
         self,
         model: str,
@@ -85,15 +70,13 @@ class OpenRouterProvider(LLMProviderProtocol):
         model_config: dict[str, Any],
         **kwargs,
     ) -> dict[str, Any]:
-        """Prepare completion kwargs for LiteLLM OpenRouter routing."""
         if not self._initialized:
             self.initialize()
 
-        # Merge model_config defaults with user kwargs (user kwargs take precedence)
         merged_kwargs = {**model_config.get("kwargs", {}), **kwargs}
 
-        completion_kwargs = {
-            "model": self._litellm_model_id(model),
+        completion_kwargs: dict[str, Any] = {
+            "model": model,
             "messages": messages,
             **merged_kwargs,
         }
@@ -110,7 +93,6 @@ class OpenRouterProvider(LLMProviderProtocol):
         return schema_copy
 
     def _patch_recursive(self, obj) -> None:
-        """Recursively patch schema, handling dicts and lists."""
         if isinstance(obj, dict):
             if obj.get("type") == "object":
                 obj["additionalProperties"] = False

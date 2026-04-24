@@ -29,6 +29,8 @@ class OpenAIProvider(LLMProviderProtocol):
     @property
     def supported_models(self) -> list[str]:
         return [
+            "gpt-5.4",
+            "gpt-5.4-nano",
             "gpt-4o-mini",
             "gpt-4o-mini-2024-07-18",
             "gpt-4",

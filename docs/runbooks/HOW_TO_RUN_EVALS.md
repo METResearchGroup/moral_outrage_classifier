@@ -21,22 +21,23 @@ This runbook covers setup and running the evaluation harness locally.
 From the repository root (with `uv sync` already run):
 
 ```bash
-PYTHONPATH=. uv run evaluation/examples_test.py \       
---input-path evaluation/sample_data/csv_input_name.csv \
---output-path evaluation/sample_data/csv_output_name.csv \
---models perspective_api  
+PYTHONPATH=. uv run python -m evaluation.examples_test \
+  --input-path evaluation/sample_data/csv_input_name.csv \
+  --output-root evaluation/outputs \
+  --models perspective_api
 ```
 
-You will need to replace csv_input_name.csv and csv_output_name with the actual file names. 
+You can pass multiple family aliases, for example `--models openai --models perspective_api`. Replace the input CSV path with your file; `--output-root` is the directory where timestamped run folders are created (each run contains `output.csv`, `metrics.json`, and `metadata.json`).
 
 ## Where to put data
 
 1. Make sure your csv file has columns that adhere to the `column_name_conversion` variable defined in `evaluation/dataloader.py`
-2. Put the csv file in `evaluation/sample_data/csv_input_name.csv`. An output file is not required before calling the script, only when calling the script, the CLI args require an output file path.
+2. Put the csv file under `evaluation/sample_data/` (or pass any path). You do not need a pre-existing run directory; `--output-root` must point to a parent directory where the script will create a timestamped folder for each run.
 
-## Models currently supported 
+## Models currently supported
 
-This is defined in the variable `MODEL_REGISTRY` in `evaluation/run_evaluation_harness.py`
+Aliases are defined in `MODEL_REGISTRY` in `evaluation/model_registry.py`: `perspective_api`, `openai`, `qwen`, `anthropic`, and `minimax`. The merged `output.csv` records the **resolved** model id for LLM runs (for example `gpt-5.4` for the `openai` alias), not the CLI alias. Run `metadata.json` lists both `llm_provider_name` and `resolved_model_id` per model, plus prompt fields for LLM facades.
 
 ## Pull Request Link
-https://github.com/METResearchGroup/moral_outrage_classifier/pull/6
+
+[Here is the original link](https://github.com/METResearchGroup/moral_outrage_classifier/pull/6) to the PR that implemented the evaluation harness.

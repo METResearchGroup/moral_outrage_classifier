@@ -1,5 +1,6 @@
 """Registry for LLM providers."""
 
+from models.llm.providers.anthropic_provider import AnthropicProvider
 from models.llm.providers.base import LLMProviderProtocol
 from models.llm.providers.openai_provider import OpenAIProvider
 from models.llm.providers.openrouter_provider import OpenRouterProvider
@@ -56,3 +57,4 @@ class LLMProviderRegistry:
 # classmethods while assuming that the providers are already imported.
 LLMProviderRegistry.register(OpenAIProvider)
 LLMProviderRegistry.register(OpenRouterProvider)
+LLMProviderRegistry.register(AnthropicProvider)
