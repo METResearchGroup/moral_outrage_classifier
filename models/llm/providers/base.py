@@ -32,12 +32,14 @@ class LLMProviderProtocol(ABC):
 
     @property
     @abstractmethod
-    def api_key(self) -> str:
-        """Return the API key for this provider instance.
+    def api_key(self) -> str | None:
+        """Return the API key for this provider instance, if one is needed.
 
         This is used to avoid mutating global LiteLLM state (e.g. litellm.api_key).
-        Providers should store the key on the instance during initialize() and
-        callers should pass api_key=provider.api_key on each LiteLLM call.
+        Providers that use API keys should store the key on the instance during
+        initialize() and callers should pass api_key=provider.api_key on each
+        LiteLLM call. Providers that authenticate outside LiteLLM api_key, such
+        as Bedrock via AWS credentials, should return None.
         """
         ...
 

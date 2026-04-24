@@ -82,7 +82,7 @@ class EvaluationHarness:
                     if model_name == "perspective_api":
                         pred_label = 1 if prediction.moral_outrage_score > PROB_LABEL_THRESHOLD else 0
                     else:
-                        pred_label = prediction.moral_outrage_score 
+                        pred_label = int(prediction.moral_outrage_score)
 
                 is_correct = int(sample["gold_label"]) == int(pred_label) if pred_label is not None and sample["gold_label"] is not None else None
 
@@ -93,7 +93,7 @@ class EvaluationHarness:
                     "gold_label": sample["gold_label"],
                     "pred_label": pred_label,
                     "is_correct": is_correct,
-                    "model": model_name,
+                    "model": csv_model,
                 })
     
     @retry(stop=stop_after_attempt(RETRIES), wait=wait_fixed(RETRY_WAIT_TIME_SECONDS))
