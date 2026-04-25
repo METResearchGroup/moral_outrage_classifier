@@ -24,7 +24,11 @@ def mock_model() -> MagicMock:
 
 @pytest.fixture(autouse=True)
 def patch_model_registry(mock_model: MagicMock) -> Iterator[None]:
-    with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": MagicMock(return_value=mock_model)}):
+    class FakePerspectiveModel:
+        def batch_classify(self, texts: list[str]) -> list[MagicMock]:
+            return mock_model.batch_classify(texts)
+
+    with patch.dict("evaluation.run_evaluation_harness.MODEL_REGISTRY", {"perspective_api": FakePerspectiveModel}):
         yield
 
 
