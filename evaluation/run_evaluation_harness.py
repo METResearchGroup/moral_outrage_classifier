@@ -1,6 +1,7 @@
 import collections
 import csv
 import json
+from collections.abc import Callable
 
 from tenacity import retry, stop_after_attempt, wait_fixed
 from tqdm import tqdm
@@ -123,19 +124,25 @@ class EvaluationHarness:
                     "model": model_name
                 })
 
-    def _run_model_evaluation(self, model_name: str) -> None:
+    def _run_model_evaluation(
+        self,
+        model_name: str,
+        progress_callback: Callable[[int, int], None] | None = None,
+    ) -> None:
         model = MODEL_REGISTRY[model_name]()
         path = self._get_model_output_path(self.new_output_path, model_name)
-        for batch in tqdm(self.dataloaders[model_name], desc=f"Evaluating {model_name}"):
+        dataloader = self.dataloaders[model_name]
+        total_rows = len(dataloader.data)
+        for i, batch in enumerate(tqdm(dataloader, desc=f"Evaluating {model_name}"), start=1):
             texts = [sample["text"] for sample in batch]
-            text_ids = [sample["id"] for sample in batch]
-
             try:
                 self._process_batch(texts, path, model, model_name, batch)
-
             except Exception as e:
                 self._write_to_deadletter_csv(self.new_output_path, model_name, batch)
                 print(f"Error during model evaluation: {e}")
+            if progress_callback:
+                rows_done = min(i * dataloader.batch_size, total_rows)
+                progress_callback(rows_done, total_rows)
                 
     def _copy_model_results_to_merged_csv(self, path: str, writer: csv.DictWriter) -> None:
         """
@@ -205,9 +212,12 @@ class EvaluationHarness:
         with open(metrics_file, "w") as f:
             json.dump(metrics_json, f, indent=2)
 
-    def run_evaluation(self) -> None:
+    def run_evaluation(
+        self,
+        progress_callback: Callable[[int, int], None] | None = None,
+    ) -> None:
         for model in self.models:
-            self._run_model_evaluation(model)
+            self._run_model_evaluation(model, progress_callback=progress_callback)
 
         self._merge_model_results()
 

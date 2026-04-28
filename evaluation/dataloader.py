@@ -4,15 +4,10 @@ import math
 from pathlib import Path
 from typing import Any, Iterator
 
+from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION as column_name_conversion
 from evaluation.metadata import get_model_id_value
 from evaluation.model_registry import MODEL_REGISTRY
 from models.llm.models import BaseHarnessLLMModel
-
-column_name_conversion = {
-    "id": ["id", "tweet_id"],
-    "text": ["text", "body"],
-    "gold_label": ["gold_label", "outrage", "pers_outrage_label"],
-}
 
 
 def _normalize_prompt_hash(value: Any) -> str | None:
