@@ -25,7 +25,7 @@ test = [
 examples = [
     "typer>=0.24.1",
 ]
-generic = [
+streamlit = [
     "streamlit>=1.44",
 ]
 
