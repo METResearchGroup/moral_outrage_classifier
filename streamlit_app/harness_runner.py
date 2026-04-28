@@ -1,7 +1,4 @@
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from evaluation.run_evaluation_harness import EvaluationHarness
 from lib.timestamp_utils import get_current_timestamp

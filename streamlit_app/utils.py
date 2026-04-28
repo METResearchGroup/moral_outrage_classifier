@@ -1,8 +1,5 @@
 import csv
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION, REQUIRED_COLUMNS
 from constants import UPLOADS_DIR
