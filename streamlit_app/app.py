@@ -190,15 +190,19 @@ def _render_results():
         )
 
 
-def main():
+def _configure_page() -> None:
     st.set_page_config(page_title="Moral Outrage Labeler", layout="centered")
     st.title("Moral Outrage Labeler")
-    _init_session_state()
 
+
+def _get_run_state() -> tuple[str, bool]:
+    _init_session_state()
     run_state = st.session_state.run_state
     is_running = run_state == RUN_STATE_RUNNING
+    return run_state, is_running
 
-    # ── Upload dataset ─────────────────────────────────────────────────────────
+
+def _render_upload_section(is_running: bool) -> None:
     st.header("1. Upload dataset")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"], disabled=is_running)
     if uploaded_file is not None:
@@ -225,37 +229,50 @@ def main():
                 + (" · gold_label present — evaluation metrics will be shown" if has_gold else "")
             )
 
-    dataset_path: Path | None = st.session_state.dataset_path
 
-    # ── Select model ───────────────────────────────────────────────────────────
+def _render_model_selection_section(is_running: bool) -> str:
     st.header("2. Select model")
-    selected_model = st.selectbox("Model", MODELS, disabled=is_running)
+    return st.selectbox("Model", MODELS, disabled=is_running)
 
-    # ── Run ────────────────────────────────────────────────────────────────────
+
+def _render_run_section(is_running: bool, dataset_path: Path | None, selected_model: str) -> None:
     st.header("3. Run")
     if st.button("Start labeling", disabled=is_running or dataset_path is None):
         _start_run(dataset_path, selected_model)
         st.rerun()
-
     if dataset_path is None and not is_running:
         st.caption("Upload a dataset above to enable the run.")
 
-    # ── Progress ───────────────────────────────────────────────────────────────
-    if is_running:
-        st.header("Running")
-        _poll_running_state()
-        return
 
-    # ── Results ────────────────────────────────────────────────────────────────
+def _render_progress_section() -> None:
+    st.header("Running")
+    _poll_running_state()
+
+
+def _render_results_section(run_state: str) -> None:
     if run_state in (RUN_STATE_COMPLETED, RUN_STATE_COMPLETED_WITH_FAILURES):
         st.header("Results")
         _render_results()
-
     elif run_state == RUN_STATE_FAILED:
         st.error(f"Run failed: {st.session_state.run_error}")
         if st.button("Reset"):
             st.session_state.run_state = RUN_STATE_READY
             st.rerun()
+
+
+def main():
+    _configure_page()
+    run_state, is_running = _get_run_state()
+
+    _render_upload_section(is_running)
+    selected_model = _render_model_selection_section(is_running)
+    _render_run_section(is_running, st.session_state.dataset_path, selected_model)
+
+    if is_running:
+        _render_progress_section()
+        return
+
+    _render_results_section(run_state)
 
 
 if __name__ == "__main__":
