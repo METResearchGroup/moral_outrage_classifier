@@ -1,4 +1,3 @@
-import csv
 import json
 import sys
 import threading
@@ -11,27 +10,25 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION, REQUIRED_COLUMNS
-from evaluation.model_registry import MODEL_REGISTRY
-from evaluation.run_evaluation_harness import EvaluationHarness
-from lib.timestamp_utils import get_current_timestamp
+from constants import (
+    MODELS,
+    RUN_STATE_COMPLETED,
+    RUN_STATE_COMPLETED_WITH_FAILURES,
+    RUN_STATE_FAILED,
+    RUN_STATE_READY,
+    RUN_STATE_RUNNING,
+)
+from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION
+from harness_runner import _run_harness
+from utils import (
+    _count_csv_rows,
+    _has_gold_label,
+    _read_csv_columns,
+    _save_uploaded_file,
+    _validate_columns,
+)
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_env_path = PROJECT_ROOT / ".env"
-load_dotenv(_env_path)
-
-UPLOADS_DIR = PROJECT_ROOT / "streamlit_app" / "uploads"
-OUTPUTS_DIR = PROJECT_ROOT / "streamlit_app" / "outputs"
-UPLOADS_DIR.mkdir(exist_ok=True)
-OUTPUTS_DIR.mkdir(exist_ok=True)
-
-MODELS = list(MODEL_REGISTRY.keys())
-
-RUN_STATE_READY = "ready"
-RUN_STATE_RUNNING = "running"
-RUN_STATE_COMPLETED = "completed"
-RUN_STATE_COMPLETED_WITH_FAILURES = "completed_with_failures"
-RUN_STATE_FAILED = "failed"
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 def _init_session_state():
@@ -48,55 +45,6 @@ def _init_session_state():
     for key, val in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = val
-
-
-def _validate_columns(columns: list[str]) -> list[str]:
-    """Return canonical names of required fields that are missing from columns."""
-    missing = []
-    for canonical in REQUIRED_COLUMNS:
-        aliases = COLUMN_NAME_CONVERSION[canonical]
-        if not any(alias in columns for alias in aliases):
-            missing.append(canonical)
-    return missing
-
-
-def _has_gold_label(columns: list[str]) -> bool:
-    return any(alias in columns for alias in COLUMN_NAME_CONVERSION["gold_label"])
-
-
-def _read_csv_columns(path: Path) -> list[str]:
-    with open(path, newline="") as f:
-        reader = csv.DictReader(f)
-        return list(reader.fieldnames or [])
-
-
-def _count_csv_rows(path: Path) -> int:
-    with open(path, newline="") as f:
-        return sum(1 for _ in csv.DictReader(f))
-
-
-def _run_harness(dataset_path: Path, model: str, progress_state: dict, result_state: dict):
-    timestamp = get_current_timestamp()
-    harness = EvaluationHarness(
-        input_path=str(dataset_path.relative_to(PROJECT_ROOT)),
-        output_path=str(OUTPUTS_DIR.relative_to(PROJECT_ROOT)),
-        batch_size=10,
-        models=[model],
-        timestamp=timestamp,
-    )
-    harness.load_data()
-
-    def callback(current: int, total: int):
-        progress_state["current"] = current
-        progress_state["total"] = total
-
-    try:
-        harness.run_evaluation(progress_callback=callback)
-        result_state["output_path"] = PROJECT_ROOT / "streamlit_app" / "outputs" / timestamp
-        result_state["done"] = True
-    except Exception as e:
-        result_state["error"] = str(e)
-        result_state["done"] = True
 
 
 def _start_run(dataset_path: Path, model: str):
@@ -210,10 +158,8 @@ def _render_output_preview(output_csv: Path) -> None:
 
 def _render_results():
     output_csv, metrics_path, failed_count = _unpack_run_result()
-
     _render_completion_status(failed_count)
     _render_output_preview(output_csv)
-
     _render_evaluation_metrics(metrics_path)
     _render_export_button(output_csv)
 
@@ -224,16 +170,9 @@ def _configure_page() -> None:
 
 
 def _get_run_state() -> tuple[str, bool]:
-    _init_session_state()
     run_state = st.session_state.run_state
     is_running = run_state == RUN_STATE_RUNNING
     return run_state, is_running
-
-
-def _save_uploaded_file(uploaded_file) -> Path:
-    save_path = UPLOADS_DIR / uploaded_file.name
-    save_path.write_bytes(uploaded_file.read())
-    return save_path
 
 
 def _reject_upload(save_path: Path, missing: list[str]) -> None:
@@ -302,6 +241,7 @@ def _render_results_section(run_state: str) -> None:
 
 def main():
     _configure_page()
+    _init_session_state()
     run_state, is_running = _get_run_state()
 
     _render_upload_section(is_running)
