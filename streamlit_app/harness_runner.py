@@ -8,7 +8,7 @@ from lib.timestamp_utils import get_current_timestamp
 from constants import PROJECT_ROOT, OUTPUTS_DIR
 
 
-def _run_harness(dataset_path: Path, model: str, progress_state: dict, result_state: dict):
+def _run_harness(dataset_path: Path, model: str, progress_state: dict, result_state: dict, state_lock):
     timestamp = get_current_timestamp()
     harness = EvaluationHarness(
         input_path=str(dataset_path.relative_to(PROJECT_ROOT)),
@@ -20,13 +20,17 @@ def _run_harness(dataset_path: Path, model: str, progress_state: dict, result_st
     harness.load_data()
 
     def callback(current: int, total: int):
-        progress_state["current"] = current
-        progress_state["total"] = total
+        with state_lock:
+            progress_state["current"] = current
+            progress_state["total"] = total
 
     try:
         harness.run_evaluation(progress_callback=callback)
-        result_state["output_path"] = OUTPUTS_DIR / timestamp
-        result_state["done"] = True
+        with state_lock:
+            result_state["output_path"] = OUTPUTS_DIR / timestamp
     except Exception as e:
-        result_state["error"] = str(e)
-        result_state["done"] = True
+        with state_lock:
+            result_state["error"] = str(e)
+    finally:
+        with state_lock:
+            result_state["done"] = True

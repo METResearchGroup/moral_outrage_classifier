@@ -8,8 +8,6 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from constants import (
     MODELS,
     RUN_STATE_COMPLETED,
@@ -48,18 +46,22 @@ def _init_session_state():
 
 
 def _start_run(dataset_path: Path, model: str):
+    state_lock = threading.Lock()
+
     progress_state = {"current": 0, "total": 0}
     result_state = {"done": False, "error": None, "output_path": None}
 
-    st.session_state.progress = progress_state
-    st.session_state._result_state = result_state
-    st.session_state.run_state = RUN_STATE_RUNNING
-    st.session_state.result = None
-    st.session_state.run_error = None
+    with state_lock:
+        st.session_state.state_lock = state_lock
+        st.session_state.progress = progress_state
+        st.session_state._result_state = result_state
+        st.session_state.run_state = RUN_STATE_RUNNING
+        st.session_state.result = None
+        st.session_state.run_error = None
 
     thread = threading.Thread(
         target=_run_harness,
-        args=(dataset_path, model, progress_state, result_state),
+        args=(dataset_path, model, progress_state, result_state, state_lock),
         daemon=True,
     )
     st.session_state.run_thread = thread
@@ -67,8 +69,10 @@ def _start_run(dataset_path: Path, model: str):
 
 
 def _render_progress_bar() -> None:
-    current = st.session_state.progress["current"]
-    total = st.session_state.progress["total"]
+    with st.session_state.state_lock:
+        current = st.session_state.progress["current"]
+        total = st.session_state.progress["total"]
+
     if total > 0:
         st.progress(current / total, text=f"{current:,} / {total:,} rows")
     else:
@@ -97,11 +101,12 @@ def _finalize_run(result_state: dict) -> None:
 
 def _poll_running_state():
     thread: threading.Thread = st.session_state.run_thread
-    result_state: dict = st.session_state._result_state
 
     if thread and thread.is_alive():
         _render_progress_bar()
     else:
+        with st.session_state.state_lock:
+            result_state: dict = st.session_state._result_state
         _finalize_run(result_state)
 
 
