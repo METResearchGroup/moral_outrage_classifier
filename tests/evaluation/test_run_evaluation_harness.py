@@ -12,6 +12,19 @@ FAKE_BATCH: list[dict[str, str]] = [
 ]
 
 
+class FakeDataLoader:
+    def __init__(self, batches: list[list[dict]], batch_size: int = 2):
+        self.data = [row for batch in batches for row in batch]
+        self.batch_size = batch_size
+        self._batches = batches
+
+    def __iter__(self):
+        return iter(self._batches)
+
+    def __len__(self):
+        return len(self._batches)
+
+
 @pytest.fixture
 def mock_model() -> MagicMock:
     mm = MagicMock()
@@ -43,7 +56,7 @@ def harness(tmp_path: Path) -> EvaluationHarness:
             timestamp="test_run",
         )
 
-    h.dataloaders["perspective_api"] = [FAKE_BATCH]  # type: ignore[assignment]
+    h.dataloaders["perspective_api"] = FakeDataLoader([FAKE_BATCH])
     return h
 
 
@@ -70,7 +83,7 @@ class TestDeadletter:
     def test_deadletter_appends_across_multiple_failed_batches(self, harness: EvaluationHarness) -> None:
         batch1: list[dict[str, str]] = [{"id": "1", "text": "a", "gold_label": "1"}]
         batch2: list[dict[str, str]] = [{"id": "2", "text": "b", "gold_label": "0"}]
-        harness.dataloaders["perspective_api"] = [batch1, batch2]  # type: ignore[assignment]
+        harness.dataloaders["perspective_api"] = FakeDataLoader([batch1, batch2])
 
         with patch.object(harness, "_process_batch", side_effect=Exception("fail")):
             harness._run_model_evaluation("perspective_api")
