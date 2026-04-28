@@ -199,7 +199,7 @@ class DataLoader:
         gold_label_str = self._get_field_value("gold_label", row)
 
         try:
-            gold_label = int(gold_label_str) if gold_label_str is not None else None
+            gold_label = int(float(gold_label_str)) if gold_label_str is not None else None
         except (ValueError, TypeError):
             gold_label = None
 
