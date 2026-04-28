@@ -118,44 +118,55 @@ def _start_run(dataset_path: Path, model: str):
     thread.start()
 
 
+def _render_progress_bar() -> None:
+    current = st.session_state.progress["current"]
+    total = st.session_state.progress["total"]
+    if total > 0:
+        st.progress(current / total, text=f"{current:,} / {total:,} rows")
+    else:
+        st.progress(0.0, text="Starting…")
+    time.sleep(0.5)
+    st.rerun()
+
+
+def _finalize_run(result_state: dict) -> None:
+    if result_state.get("error"):
+        st.session_state.run_state = RUN_STATE_FAILED
+        st.session_state.run_error = result_state["error"]
+    else:
+        output_path: Path = result_state["output_path"]
+        deadletter_path = output_path / "deadletter.csv"
+        failed_count = _count_csv_rows(deadletter_path) if deadletter_path.exists() else 0
+        st.session_state.result = {
+            "output_path": output_path,
+            "failed_count": failed_count,
+        }
+        st.session_state.run_state = (
+            RUN_STATE_COMPLETED_WITH_FAILURES if failed_count > 0 else RUN_STATE_COMPLETED
+        )
+    st.rerun()
+
+
 def _poll_running_state():
     thread: threading.Thread = st.session_state.run_thread
     result_state: dict = st.session_state._result_state
 
     if thread and thread.is_alive():
-        current = st.session_state.progress["current"]
-        total = st.session_state.progress["total"]
-        if total > 0:
-            st.progress(current / total, text=f"{current:,} / {total:,} rows")
-        else:
-            st.progress(0.0, text="Starting…")
-        time.sleep(0.5)
-        st.rerun()
+        _render_progress_bar()
     else:
-        if result_state.get("error"):
-            st.session_state.run_state = RUN_STATE_FAILED
-            st.session_state.run_error = result_state["error"]
-        else:
-            output_path: Path = result_state["output_path"]
-            deadletter_path = output_path / "deadletter.csv"
-            failed_count = _count_csv_rows(deadletter_path) if deadletter_path.exists() else 0
-            st.session_state.result = {
-                "output_path": output_path,
-                "failed_count": failed_count,
-            }
-            st.session_state.run_state = (
-                RUN_STATE_COMPLETED_WITH_FAILURES if failed_count > 0 else RUN_STATE_COMPLETED
-            )
-        st.rerun()
+        _finalize_run(result_state)
 
 
-def _render_results():
+def _unpack_run_result() -> tuple[Path, Path, int]:
     result = st.session_state.result
     output_path: Path = result["output_path"]
     failed_count: int = result["failed_count"]
     output_csv = output_path / "output.csv"
     metrics_path = output_path / "metrics.json"
+    return output_csv, metrics_path, failed_count
 
+
+def _render_completion_status(failed_count: int) -> None:
     if st.session_state.run_state == RUN_STATE_COMPLETED:
         st.success("Labeling complete.")
     else:
@@ -164,23 +175,24 @@ def _render_results():
             "Export the output below, then rerun the dataset to recover failed rows."
         )
 
-    st.subheader("Output preview")
-    df = pd.read_csv(output_csv)
-    st.dataframe(df.head(50), width="stretch")
 
-    if metrics_path.exists() and st.session_state.dataset_has_gold:
-        st.subheader("Evaluation metrics")
-        with open(metrics_path) as f:
-            metrics = json.load(f)
-        for model_name, m in metrics.items():
-            st.write(f"**{model_name}**")
-            cols = st.columns(4)
-            cols[0].metric("Accuracy", f"{m['accuracy']:.4f}")
-            cols[1].metric("Precision", f"{m['precision']:.4f}")
-            cols[2].metric("Recall", f"{m['recall']:.4f}")
-            cols[3].metric("F1", f"{m['f1_score']:.4f}")
-            st.caption(f"Evaluated on {m['total_samples']} samples")
+def _render_evaluation_metrics(metrics_path: Path) -> None:
+    if not (metrics_path.exists() and st.session_state.dataset_has_gold):
+        return
+    st.subheader("Evaluation metrics")
+    with open(metrics_path) as f:
+        metrics = json.load(f)
+    for model_name, m in metrics.items():
+        st.write(f"**{model_name}**")
+        cols = st.columns(4)
+        cols[0].metric("Accuracy", f"{m['accuracy']:.4f}")
+        cols[1].metric("Precision", f"{m['precision']:.4f}")
+        cols[2].metric("Recall", f"{m['recall']:.4f}")
+        cols[3].metric("F1", f"{m['f1_score']:.4f}")
+        st.caption(f"Evaluated on {m['total_samples']} samples")
 
+
+def _render_export_button(output_csv: Path) -> None:
     with open(output_csv, "rb") as f:
         st.download_button(
             label="Export output CSV",
@@ -188,6 +200,22 @@ def _render_results():
             file_name="labeled_output.csv",
             mime="text/csv",
         )
+
+
+def _render_output_preview(output_csv: Path) -> None:
+    st.subheader("Output preview")
+    df = pd.read_csv(output_csv)
+    st.dataframe(df.head(50), width="stretch")
+
+
+def _render_results():
+    output_csv, metrics_path, failed_count = _unpack_run_result()
+
+    _render_completion_status(failed_count)
+    _render_output_preview(output_csv)
+
+    _render_evaluation_metrics(metrics_path)
+    _render_export_button(output_csv)
 
 
 def _configure_page() -> None:
@@ -202,32 +230,44 @@ def _get_run_state() -> tuple[str, bool]:
     return run_state, is_running
 
 
+def _save_uploaded_file(uploaded_file) -> Path:
+    save_path = UPLOADS_DIR / uploaded_file.name
+    save_path.write_bytes(uploaded_file.read())
+    return save_path
+
+
+def _reject_upload(save_path: Path, missing: list[str]) -> None:
+    save_path.unlink(missing_ok=True)
+    aliases = {c: COLUMN_NAME_CONVERSION[c] for c in missing}
+    st.error(
+        f"Upload rejected — required field(s) not found: "
+        + ", ".join(f"`{c}` (accepted names: {aliases[c]})" for c in missing)
+    )
+    st.session_state.dataset_path = None
+
+
+def _accept_upload(save_path: Path, columns: list[str]) -> None:
+    row_count = _count_csv_rows(save_path)
+    has_gold = _has_gold_label(columns)
+    st.session_state.dataset_path = save_path
+    st.session_state.dataset_has_gold = has_gold
+    st.caption(
+        f"{row_count} rows · columns: {', '.join(columns)}"
+        + (" · gold_label present — evaluation metrics will be shown" if has_gold else "")
+    )
+
+
 def _render_upload_section(is_running: bool) -> None:
     st.header("1. Upload dataset")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"], disabled=is_running)
     if uploaded_file is not None:
-        save_path = UPLOADS_DIR / uploaded_file.name
-        content = uploaded_file.read()
-        save_path.write_bytes(content)
+        save_path = _save_uploaded_file(uploaded_file)
         columns = _read_csv_columns(save_path)
         missing = _validate_columns(columns)
         if missing:
-            save_path.unlink(missing_ok=True)
-            aliases = {c: COLUMN_NAME_CONVERSION[c] for c in missing}
-            st.error(
-                f"Upload rejected — required field(s) not found: "
-                + ", ".join(f"`{c}` (accepted names: {aliases[c]})" for c in missing)
-            )
-            st.session_state.dataset_path = None
+            _reject_upload(save_path, missing)
         else:
-            row_count = _count_csv_rows(save_path)
-            has_gold = _has_gold_label(columns)
-            st.session_state.dataset_path = save_path
-            st.session_state.dataset_has_gold = has_gold
-            st.caption(
-                f"{row_count} rows · columns: {', '.join(columns)}"
-                + (" · gold_label present — evaluation metrics will be shown" if has_gold else "")
-            )
+            _accept_upload(save_path, columns)
 
 
 def _render_model_selection_section(is_running: bool) -> str:
