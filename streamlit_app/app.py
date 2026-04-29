@@ -202,17 +202,25 @@ def _accept_upload(save_path: Path, columns: list[str]) -> None:
     )
 
 
+def _ensure_upload_saved(uploaded_file) -> Path:
+    existing_path: Path | None = st.session_state.dataset_path
+    if existing_path is not None and existing_path.name == uploaded_file.name:
+        return existing_path
+    return save_uploaded_file(uploaded_file)
+
+
 def _render_upload_section(is_running: bool) -> None:
     st.header("1. Upload dataset")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"], disabled=is_running)
-    if uploaded_file is not None:
-        save_path = save_uploaded_file(uploaded_file)
-        columns = read_csv_columns(save_path)
-        missing = validate_columns(columns)
-        if missing:
-            _reject_upload(save_path, missing)
-        else:
-            _accept_upload(save_path, columns)
+    if uploaded_file is None:
+        return
+    save_path = _ensure_upload_saved(uploaded_file)
+    columns = read_csv_columns(save_path)
+    missing = validate_columns(columns)
+    if missing:
+        _reject_upload(save_path, missing)
+    else:
+        _accept_upload(save_path, columns)
 
 
 def _render_model_selection_section(is_running: bool) -> str:
