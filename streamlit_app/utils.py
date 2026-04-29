@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 
 from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION, REQUIRED_COLUMNS
-from constants import UPLOADS_DIR
+from streamlit_app.constants import UPLOADS_DIR
 
 
 def _validate_columns(columns: list[str]) -> list[str]:

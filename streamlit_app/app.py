@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
-from constants import (
+from streamlit_app.constants import (
     MODELS,
     RUN_STATE_COMPLETED,
     RUN_STATE_COMPLETED_WITH_FAILURES,
@@ -16,8 +16,8 @@ from constants import (
     RUN_STATE_RUNNING,
 )
 from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION
-from harness_runner import _run_harness
-from utils import (
+from streamlit_app.harness_runner import _run_harness
+from streamlit_app.utils import (
     _count_csv_rows,
     _has_gold_label,
     _read_csv_columns,

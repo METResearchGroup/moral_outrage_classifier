@@ -2,7 +2,7 @@ from pathlib import Path
 
 from evaluation.run_evaluation_harness import EvaluationHarness
 from lib.timestamp_utils import get_current_timestamp
-from constants import PROJECT_ROOT, OUTPUTS_DIR
+from streamlit_app.constants import PROJECT_ROOT, OUTPUTS_DIR
 
 
 def _run_harness(dataset_path: Path, model: str, progress_state: dict, result_state: dict, state_lock):
