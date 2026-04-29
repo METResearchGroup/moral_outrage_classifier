@@ -18,12 +18,12 @@ from streamlit_app.constants import (
 from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION
 from streamlit_app.harness_runner import _run_harness
 from streamlit_app.utils import (
-    _count_csv_rows,
-    _has_gold_label,
-    _read_csv_columns,
-    _save_uploaded_file,
-    _validate_columns,
+    count_csv_rows,
     ensure_dirs,
+    has_gold_label,
+    read_csv_columns,
+    save_uploaded_file,
+    validate_columns,
 )
 
 load_dotenv(Path(__file__).parent.parent / ".env")
@@ -89,7 +89,7 @@ def _finalize_run(result_state: dict) -> None:
     else:
         output_path: Path = result_state["output_path"]
         deadletter_path = output_path / "deadletter.csv"
-        failed_count = _count_csv_rows(deadletter_path) if deadletter_path.exists() else 0
+        failed_count = count_csv_rows(deadletter_path) if deadletter_path.exists() else 0
         st.session_state.result = {
             "output_path": output_path,
             "failed_count": failed_count,
@@ -192,8 +192,8 @@ def _reject_upload(save_path: Path, missing: list[str]) -> None:
 
 
 def _accept_upload(save_path: Path, columns: list[str]) -> None:
-    row_count = _count_csv_rows(save_path)
-    has_gold = _has_gold_label(columns)
+    row_count = count_csv_rows(save_path)
+    has_gold = has_gold_label(columns)
     st.session_state.dataset_path = save_path
     st.session_state.dataset_has_gold = has_gold
     st.caption(
@@ -206,9 +206,9 @@ def _render_upload_section(is_running: bool) -> None:
     st.header("1. Upload dataset")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"], disabled=is_running)
     if uploaded_file is not None:
-        save_path = _save_uploaded_file(uploaded_file)
-        columns = _read_csv_columns(save_path)
-        missing = _validate_columns(columns)
+        save_path = save_uploaded_file(uploaded_file)
+        columns = read_csv_columns(save_path)
+        missing = validate_columns(columns)
         if missing:
             _reject_upload(save_path, missing)
         else:
