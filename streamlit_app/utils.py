@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 
 from evaluation.column_name_conversion import COLUMN_NAME_CONVERSION, REQUIRED_COLUMNS
-from streamlit_app.constants import UPLOADS_DIR
+from streamlit_app.constants import OUTPUTS_DIR, UPLOADS_DIR
 
 
 def _validate_columns(columns: list[str]) -> list[str]:
@@ -27,6 +27,11 @@ def _read_csv_columns(path: Path) -> list[str]:
 def _count_csv_rows(path: Path) -> int:
     with open(path, newline="") as f:
         return sum(1 for _ in csv.DictReader(f))
+
+
+def ensure_dirs() -> None:
+    UPLOADS_DIR.mkdir(exist_ok=True)
+    OUTPUTS_DIR.mkdir(exist_ok=True)
 
 
 def _save_uploaded_file(uploaded_file) -> Path:

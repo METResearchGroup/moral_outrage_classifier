@@ -23,12 +23,14 @@ from streamlit_app.utils import (
     _read_csv_columns,
     _save_uploaded_file,
     _validate_columns,
+    ensure_dirs,
 )
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 def _init_session_state():
+    ensure_dirs()
     defaults = {
         "run_state": RUN_STATE_READY,
         "run_thread": None,
