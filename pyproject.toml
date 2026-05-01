@@ -25,6 +25,9 @@ test = [
 examples = [
     "typer>=0.24.1",
 ]
+streamlit = [
+    "streamlit>=1.44",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

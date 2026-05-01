@@ -31,6 +31,10 @@ htmlcov/
 
 *.env
 
+# Streamlit app runtime data
+streamlit_app/uploads/
+streamlit_app/outputs/
+
 # Terraform
 .terraform/
 *.tfstate
