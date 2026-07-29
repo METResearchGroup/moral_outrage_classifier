@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
+    "team-llm",
     "boto3>=1.42.96",
     "google-api-python-client>=2.193.0",
     "langdetect>=1.0.9",
@@ -28,6 +29,9 @@ examples = [
 streamlit = [
     "streamlit>=1.44",
 ]
+
+[tool.uv.sources]
+team-llm = { path = "packages/team-llm", editable = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

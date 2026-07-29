@@ -5,7 +5,7 @@ import logging
 from pydantic import BaseModel
 
 from lib.decorators import timed
-from models.llm.llm_service import LLMService
+from team_llm import LLMService
 
 class MoralOutrage(BaseModel):
     """Structured response for a simple moral outrage classification."""

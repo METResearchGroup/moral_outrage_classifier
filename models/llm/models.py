@@ -5,7 +5,7 @@ from typing import ClassVar
 
 from lib.timestamp_utils import get_current_timestamp
 from models.base import BaseModel as ClassifierBaseModel
-from models.llm.llm_service import LLMService, get_llm_service
+from team_llm import LLMService, get_llm_service
 from models.llm.prompts import MORAL_OUTRAGE_PROMPT
 from schemas.responses import MoralOutrage, MoralOutrageLLMResponse
 
