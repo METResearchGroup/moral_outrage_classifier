@@ -1,0 +1,27 @@
+[project]
+name = "team-llm"
+version = "0.1.0"
+description = "Internal LiteLLM-based service for structured LLM completions across providers"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.42.96",
+    "litellm==1.81.0",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.2",
+    "pyyaml>=6.0.2",
+    "tenacity>=9.1.4",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=9.0.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

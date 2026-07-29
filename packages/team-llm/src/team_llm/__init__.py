@@ -1,4 +1,4 @@
-"""Compatibility re-exports for team-llm."""
+"""Structured LLM completions via LiteLLM."""
 
 from team_llm.llm_service import LLMService, get_llm_service
 
